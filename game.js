@@ -230,7 +230,7 @@ if(joystick&&stick){
  joystick.addEventListener('pointermove',move);joystick.addEventListener('pointerup',end);joystick.addEventListener('pointercancel',end);
 }
 function tryLandscape(){try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{});}catch(e){}}
-document.addEventListener('pointerdown',tryLandscape,{once:true});document.addEventListener('click',tryLandscape,{once:true});window.addEventListener('orientationchange',()=>{setTimeout(()=>{tryLandscape();resizeGame()},120)});
+document.addEventListener('pointerdown',tryLandscape,{once:true});document.addEventListener('click',tryLandscape,{once:true});window.addEventListener('orientationchange',()=>{setTimeout(()=>{tryLandscape();camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(MOBILE?Math.min(devicePixelRatio||1,1.15):Math.min(devicePixelRatio||1,1.5))},120)});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(MOBILE?Math.min(devicePixelRatio||1,1.15):Math.min(devicePixelRatio||1,1.5))});
 let started=false,last=performance.now(),phase=0;
 function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;phase+=dt;
