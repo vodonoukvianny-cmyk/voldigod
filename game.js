@@ -439,7 +439,36 @@ document.addEventListener('pointerdown',tryLandscape,{once:true});document.addEv
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(MOBILE?Math.min(devicePixelRatio||1,1.15):Math.min(devicePixelRatio||1,1.5))});
 let started=false,last=performance.now(),phase=0;
 function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;phase+=dt;
-if(started&&!dialog){lyra.model.position.set(lyra.x,0,lyra.z);lyra.model.rotation.y=Math.sin(phase*.5)*.18;let x=(keys.d?1:0)-(keys.a?1:0),z=(keys.s?1:0)-(keys.w?1:0);const joy=document.getElementById('joystick');if(joy&&joy.dataset.active==='1'){x=+(joy.dataset.x||0);z=+(joy.dataset.z||0)}const l=Math.hypot(x,z);if(l>0.04){x/=l;z/=l;const accel=22;player.vx+=(x*5.8-player.vx)*Math.min(1,accel*dt);player.vz+=(z*5.8-player.vz)*Math.min(1,accel*dt);const nx=player.x+player.vx*dt,nz=player.z+player.vz*dt;movePlayer(nx,nz);if(Math.hypot(player.vx,player.vz)>.05){player.model.rotation.y=Math.atan2(player.vx,player.vz)+Math.PI;player.model.rotation.z+=(Math.max(-.08,Math.min(.08,player.vx*.018))-player.model.rotation.z)*Math.min(1,9*dt);player.model.rotation.x+=(Math.max(-.045,Math.min(.045,-player.vz*.012))-player.model.rotation.x)*Math.min(1,8*dt)}player.walking=true}else{player.vx*=Math.pow(.001,dt);player.vz*=Math.pow(.001,dt);if(Math.hypot(player.vx,player.vz)<.05){player.vx=0;player.vz=0}player.walking=Math.hypot(player.vx,player.vz)>.12;}
+if(started&&!dialog){lyra.model.position.set(lyra.x,0,lyra.z);lyra.model.rotation.y=Math.sin(phase*.5)*.18;let x=(keys.d?1:0)-(keys.a?1:0),z=(keys.s?1:0)-(keys.w?1:0);const joy=document.getElementById('joystick');if(joy&&joy.dataset.active==='1'){x=+(joy.dataset.x||0);z=+(joy.dataset.z||0)}const l=Math.hypot(x,z);if(l>0.04){
+ x/=l;z/=l;
+ const targetSpeed=5.8,accel=22;
+ player.vx+=(x*targetSpeed-player.vx)*Math.min(1,accel*dt);
+ player.vz+=(z*targetSpeed-player.vz)*Math.min(1,accel*dt);
+ const speed=Math.hypot(player.vx,player.vz),nx=player.x+player.vx*dt,nz=player.z+player.vz*dt;
+ movePlayer(nx,nz);
+ if(speed>.05){
+   const desired=Math.atan2(player.vx,player.vz)+Math.PI;
+   let da=desired-player.model.rotation.y;da=Math.atan2(Math.sin(da),Math.cos(da));
+   const turn=Math.min(1,14*dt);
+   player.model.rotation.y+=da*turn;
+   const forwardX=Math.sin(player.model.rotation.y),forwardZ=Math.cos(player.model.rotation.y);
+   const side=(player.vx*forwardX+player.vz*forwardZ);
+   const lateral=(-player.vx*forwardZ+player.vz*forwardX);
+   player.model.rotation.z+=(Math.max(-.12,Math.min(.12,lateral*.028))-player.model.rotation.z)*Math.min(1,11*dt);
+   player.model.rotation.x+=(Math.max(-.065,Math.min(.065,-side*.012))-player.model.rotation.x)*Math.min(1,10*dt);
+ }
+ player.walking=true;
+}else{
+ const drag=Math.pow(.001,dt);
+ player.vx*=drag;player.vz*=drag;
+ const speed=Math.hypot(player.vx,player.vz);
+ if(speed<.05){player.vx=0;player.vz=0}
+ player.walking=speed>.12;
+ if(speed>.05){
+   player.model.rotation.z*=Math.pow(.04,dt);
+   player.model.rotation.x*=Math.pow(.08,dt);
+ }
+}
 separateFromDynamic();player.x=Math.max(-82,Math.min(82,player.x));player.z=Math.max(-82,Math.min(82,player.z));player.model.position.set(player.x,0,player.z);
 for(const e of enemies){if(e.dead)continue;e.cd-=dt;const dx=player.x-e.x,dz=player.z-e.z,d=Math.hypot(dx,dz);if(d<22&&d>.4){const ex=e.x+dx/d*e.speed*dt,ez=e.z+dz/d*e.speed*dt;
 if(!blockedAt(ex,ez)){e.x=ex;e.z=ez;}
