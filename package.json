@@ -1,7 +1,17 @@
 {
-  "name":"otakujeux-renaissance",
-  "version":"1.0.0",
-  "private":true,
-  "scripts":{"sync":"npx cap sync android","open:android":"npx cap open android"},
-  "dependencies":{"@capacitor/android":"latest","@capacitor/core":"latest","@capacitor/cli":"latest"}
+  "name": "otakujeux-renaissance",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "android:init": "npx cap add android",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0"
+  }
 }
