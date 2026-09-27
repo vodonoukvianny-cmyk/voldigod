@@ -1,4 +1,4 @@
-const CACHE='otakujeux-runtime-v3';
+const CACHE='otakujeux-runtime-v4';
 self.addEventListener('fetch',event=>{
  const u=new URL(event.request.url);
  if(event.request.method!=='GET') return;
