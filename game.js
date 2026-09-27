@@ -108,17 +108,49 @@ for(const o of envObstacles)addBlocker(o.x,o.z,o.r*2.1,o.r*2.1,.05);
 start.disabled=false;start.textContent='ENTRER DANS LE MONDE';status.textContent='✓ Monde prêt · personnages 3D en chargement en arrière-plan…';
 loadHero(player,AREN_URL,3.25,'sword').then(()=>{status.textContent='✓ Aren chargé · Lyra continue en arrière-plan.'}).catch(e=>{console.warn('Aren model:',e);status.textContent='✓ Monde jouable · modèle d’Aren indisponible pour le moment.'});
 loadHero(lyra,LYRA_URL,3.05,'staff').then(()=>{status.textContent='✓ Aren + Lyra chargés · monde prêt.'}).catch(e=>{console.warn('Lyra model:',e);status.textContent='✓ Monde jouable · modèle de Lyra indisponible pour le moment.'});
-function goblin(){const g=new T.Group(),skin=M(0x607d3b),dark=M(0x293029),leather=M(0x64442e);const body=cyl(.48,1.15,skin,10);body.scale.set(1,.9,.72);body.position.y=.8;g.add(body);const head=sph(.58,skin);head.scale.set(1.05,.9,.85);head.position.y=1.7;g.add(head);const nose=cone(.22,.45,skin,7);nose.rotation.x=Math.PI/2;nose.position.set(0,1.62,.52);g.add(nose);for(const x of[-.35,.35]){const ear=cone(.3,.75,skin,5);ear.rotation.z=x<0?-1:1;ear.position.set(x,1.78,0);g.add(ear);const eye=sph(.075,G(0xffd33d));eye.position.set(x*.52,1.78,.51);g.add(eye)}const tunic=box(.9,.72,.72,dark);tunic.position.y=.72;g.add(tunic);for(const x of[-.62,.62]){const arm=cyl(.14,.85,leather,8);arm.rotation.z=x<0?-.35:.35;arm.position.set(x*.65,.95,0);g.add(arm)}const blade=box(.08,1.35,.1,M(0xaeb7bd,.35,.4));blade.position.set(.9,1.1,.05);blade.rotation.z=-.55;g.add(blade);const shield=box(.55,.7,.12,leather);shield.position.set(-.82,1,.15);g.add(shield);g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g}
-function slime(){const g=new T.Group(),b=sph(.78,M(0x6a49a2,.4));b.scale.y=.7;g.add(b);for(const x of[-.22,.22]){const e=sph(.08,G(0xffffff));e.position.set(x,.18,.62);g.add(e);const p=sph(.035,G(0x15151c));p.position.set(x,.18,.69);g.add(p)}return g}
-function wolf(){const g=new T.Group(),b=box(1.25,.65,.55,M(0x59636e));b.position.y=.65;g.add(b);const h=sph(.43,M(0x59636e));h.position.set(0,.95,.62);g.add(h);for(const x of[-.38,.38])for(const z of[-.22,.22]){const l=cyl(.1,.7,M(0x414a53),8);l.position.set(x,.35,z);g.add(l)}return g}
-function wraith(){const g=new T.Group(),b=sph(.75,G(0x76a7ff,.45));b.position.y=1.2;g.add(b);const eye=sph(.16,G(0xffffff));eye.position.set(0,1.3,.68);g.add(eye);return g}
-const kinds=[['Gobelin',goblin,65,12,1.8],['Slime',slime,45,9,1.3],['Loup des Brumes',wolf,80,15,2.2],['Spectre',wraith,105,18,1.4]];
+function creatureFinish(g){g.traverse(o=>{if(o.isMesh){o.castShadow=!MOBILE;o.receiveShadow=!MOBILE}});return g}
+function eyePair(g,y,z,color=0xffe15a){for(const x of[-1,1]){const e=sph(.085,G(color));e.position.set(x*.18,y,z);g.add(e)}}
+function goblin(){const g=new T.Group(),skin=M(0x648b42),dark=M(0x293029),leather=M(0x68452f),metal=M(0xb9c4cc,.3,.5);
+ const torso=box(.78,1.0,.56,dark);torso.position.y=1.05;g.add(torso);
+ for(const x of[-.24,.24]){const leg=cyl(.13,.8,leather,8);leg.position.set(x,.42,0);g.add(leg)}
+ const head=sph(.58,skin);head.scale.set(1.02,1.08,.9);head.position.y=2.0;g.add(head);
+ const earL=cone(.34,.9,skin,5);earL.rotation.z=-1.25;earL.position.set(-.58,2.15,0);g.add(earL);
+ const earR=cone(.34,.9,skin,5);earR.rotation.z=1.25;earR.position.set(.58,2.15,0);g.add(earR);
+ const nose=cone(.2,.42,skin,7);nose.rotation.x=Math.PI/2;nose.position.set(0,1.9,.52);g.add(nose);eyePair(g,2.08,.49);
+ for(const x of[-1,1]){const arm=cyl(.13,.82,leather,8);arm.rotation.z=x<0?-.45:.45;arm.position.set(x*.57,1.15,0);g.add(arm)}
+ const blade=box(.08,1.25,.1,metal);blade.position.set(.86,1.18,.08);blade.rotation.z=-.55;g.add(blade);
+ const shield=box(.52,.68,.12,leather);shield.position.set(-.82,1.12,.16);g.add(shield);
+ const belt=box(.86,.13,.6,M(0x9a6a38));belt.position.y=.78;g.add(belt);return creatureFinish(g)}
+function slime(){const g=new T.Group(),body=sph(.82,M(0x704bc2,.32));body.scale.set(1.05,.72,.92);body.position.y=.62;g.add(body);const cap=sph(.52,M(0x9a73e8,.25));cap.scale.set(1.05,.5,.9);cap.position.set(0,.95,0);g.add(cap);eyePair(g,.67,.67,0xffffff);for(const x of[-.18,.18]){const p=sph(.045,G(0x18131f));p.position.set(x,.67,.74);g.add(p)}const mouth=mesh(new T.TorusGeometry(.16,.035,6,12,Math.PI),G(0x22152b));mouth.position.set(0,.52,.73);mouth.rotation.x=Math.PI/2;g.add(mouth);return creatureFinish(g)}
+function wolf(){const g=new T.Group(),fur=M(0x68727d),dark=M(0x3f4852),nose=M(0x252a31);
+ const torso=sph(.78,fur);torso.scale.set(1.35,.72,1.05);torso.position.y=1.0;g.add(torso);
+ const chest=sph(.52,fur);chest.scale.set(.85,1.05,.75);chest.position.set(0,1.18,.62);g.add(chest);
+ const neck=cyl(.36,.65,fur,10);neck.position.set(0,1.45,.48);neck.rotation.x=-.35;g.add(neck);
+ const head=sph(.48,fur);head.scale.set(.95,.9,1.05);head.position.set(0,1.82,.92);g.add(head);
+ const muzzle=sph(.25,fur);muzzle.scale.set(.8,.7,1.2);muzzle.position.set(0,1.7,1.28);g.add(muzzle);
+ const sn=sph(.09,nose);sn.position.set(0,1.68,1.52);g.add(sn);eyePair(g,1.92,1.32,0xffd65a);
+ for(const x of[-1,1]){const ear=cone(.24,.62,fur,4);ear.position.set(x*.3,2.2,.82);ear.rotation.z=x*.18;g.add(ear)}
+ for(const x of[-.48,.48])for(const z of[-.38,.38]){const leg=cyl(.12,.78,dark,8);leg.position.set(x,.43,z);g.add(leg);const paw=sph(.16,dark);paw.scale.set(1,.55,1.3);paw.position.set(x,.08,z+.05);g.add(paw)}
+ const tail=cyl(.13,.9,fur,8);tail.position.set(0,1.2,-.88);tail.rotation.x=-.9;tail.rotation.z=.35;g.add(tail);const tip=cone(.2,.45,dark,6);tip.position.set(0,1.62,-1.15);tip.rotation.x=-.35;g.add(tip);
+ return creatureFinish(g)}
+function wraith(){const g=new T.Group(),body=G(0x6d9dff,.48),core=sph(.7,body);core.position.y=1.25;core.scale.set(1,.95,.75);g.add(core);const hood=cone(.7,.9,G(0x354f91,.75),8);hood.position.y=1.85;g.add(hood);eyePair(g,1.45,.58,0xffffff);for(const x of[-.5,.5]){const arm=cyl(.1,1.0,G(0x78b8ff,.38),7);arm.position.set(x,1.05,.05);arm.rotation.z=x<0?-.8:.8;g.add(arm)}const aura=mesh(new T.TorusGeometry(.7,.06,6,18),G(0x79b9ff,.35));aura.rotation.x=Math.PI/2;aura.position.y=.25;g.add(aura);return creatureFinish(g)}
+function orc(){const g=new T.Group(),skin=M(0x4f6f3a),armor=M(0x3b4147),leather=M(0x69452f);
+ const body=cyl(.62,1.45,skin,10);body.position.y=1.15;body.scale.x=1.12;g.add(body);
+ const head=sph(.68,skin);head.position.y=2.35;head.scale.set(1.05,1,.9);g.add(head);
+ for(const x of[-1,1]){const ear=cone(.3,.55,skin,5);ear.position.set(x*.68,2.4,0);ear.rotation.z=x*.5;g.add(ear)}
+ const brow=box(.8,.18,.18,armor);brow.position.set(0,2.55,.54);g.add(brow);eyePair(g,2.38,.56,0xffb52e);
+ const tusk1=cone(.1,.34,M(0xe9dfc4),6);tusk1.position.set(-.18,2.08,.62);tusk1.rotation.x=Math.PI;g.add(tusk1);const tusk2=tusk1.clone();tusk2.position.x=.18;g.add(tusk2);
+ for(const x of[-.3,.3]){const leg=cyl(.17,.9,armor,8);leg.position.set(x,.48,0);g.add(leg)}
+ for(const x of[-1,1]){const arm=cyl(.17,1.0,leather,8);arm.position.set(x*.68,1.35,0);arm.rotation.z=x*.3;g.add(arm)}
+ const axe=box(.1,1.5,.12, M(0xb7c0c7,.25,.5));axe.position.set(.95,1.2,.1);axe.rotation.z=-.55;g.add(axe);const axeb=box(.65,.35,.12,armor);axeb.position.set(.95,1.82,.1);g.add(axeb);return creatureFinish(g)}
+const kinds=[['Gobelin',goblin,65,12,1.8],['Slime',slime,45,9,1.3],['Loup des Brumes',wolf,80,15,2.2],['Spectre',wraith,105,18,1.4],['Orc',orc,135,20,1.55]];
 const enemies=[];
 function spawn(kind,x,z){const k=kinds[kind],e={kind:k[0],model:k[1](),x,z,radius:k[4]*.28,hp:k[2]+S.level*7,max:k[2]+S.level*7,atk:k[3],speed:k[4],cd:rand(0,.8),dead:false};e.model.position.set(x,0,z);scene.add(e.model);enemies.push(e);return e}
 for(let i=0;i<5;i++)spawn(0,rand(-48,-27),rand(-40,5));
 for(let i=0;i<4;i++)spawn(1,rand(25,65),rand(-45,45));
 for(let i=0;i<4;i++)spawn(2,rand(20,60),rand(25,70));
 for(let i=0;i<3;i++)spawn(3,rand(-65,-30),rand(25,65));
+for(let i=0;i<2;i++)spawn(4,rand(-55,-30),rand(-68,-52));
 function chest(x,z){const g=new T.Group(),c=box(1.4,.75,1,M(0x7b4a25));c.position.y=.45;g.add(c);const lid=box(1.45,.35,1.05,M(0xb67a32));lid.position.y=.93;g.add(lid);const lock=box(.18,.22,.08,M(0xf0cc57,.3,.7));lock.position.set(0,.65,.54);g.add(lock);g.position.set(x,0,z);scene.add(g);return g}
 const chests=[chest(-28,13),chest(27,-8),chest(48,26),chest(-53,-45)];const opened=new Set();
 function rank(){return S.guild>=100?'S':S.guild>=75?'A':S.guild>=55?'B':S.guild>=35?'C':S.guild>=18?'D':S.guild>=7?'E':'F'}
