@@ -143,7 +143,7 @@ start.addEventListener('click',startGame);start.addEventListener('pointerup',e=>
 const keys={};
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();keys[k]=true;if(e.key===' '){e.preventDefault();attack()}else if(k==='e')interact();else if(k==='p')potion();else if(k==='k')skill()});
 window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
-document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.onpointerdown=e=>{e.preventDefault();keys[k]=true};b.onpointerup=b.onpointercancel=b.onpointerleave=()=>keys[k]=false});document.querySelectorAll('[data-act]').forEach(b=>{const run=()=>{const fn={attack,potion,interact,skill}[b.dataset.act];if(fn)fn()};b.addEventListener('pointerup',e=>{e.preventDefault();run()});b.addEventListener('click',e=>{e.preventDefault();run()})});
+document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.onpointerdown=e=>{e.preventDefault();keys[k]=true};b.onpointerup=b.onpointercancel=b.onpointerleave=()=>keys[k]=false});document.querySelectorAll('[data-act]').forEach(b=>{let skipClick=false;const run=()=>{const fn={attack,potion,interact,skill}[b.dataset.act];if(fn)fn()};b.addEventListener('pointerup',e=>{if(e.pointerType==='mouse')return;e.preventDefault();skipClick=true;run();setTimeout(()=>skipClick=false,350)});b.addEventListener('click',e=>{e.preventDefault();if(skipClick)return;run()})});
 
 // Mobile virtual joystick: continuous 360° movement, no button mashing required.
 const joystick=document.getElementById('joystick'),stick=document.getElementById('stick');
