@@ -241,17 +241,42 @@ function animateArticulation(rig,t,walk,attack,attackT){
  });
  if(attack){
    const p=Math.min(1,attackT/.52),wind=p<.38?p/.38:(1-p)/.62,strike=Math.sin(Math.min(1,p)*Math.PI);
+   const kind=rig.kind||'humanoid';
    rig.arms.forEach((a,i)=>{
     const s=a.side||((i%2)?-1:1),active=i===1;
-    a.root.rotation.x=(active?1.15:-.3)*wind*s;
-    a.root.rotation.z=s*.22*strike;
-    a.elbow.rotation.x=(active?-1.25:.45)*wind;
-    a.elbow.rotation.z=s*.18*strike;
-    a.wrist.rotation.x=(active?-1.05:.28)*wind;
-    a.wrist.rotation.y=s*.35*strike;
+    if(kind==='orc'){
+      a.root.rotation.x=(active?1.55:-.2)*wind*s;
+      a.root.rotation.z=s*.28*strike;
+      a.elbow.rotation.x=(active?-1.45:.35)*wind;
+      a.elbow.rotation.z=s*.22*strike;
+      a.wrist.rotation.x=(active?-1.25:.2)*wind;
+      a.wrist.rotation.y=s*.5*strike;
+    }else if(kind==='spider'){
+      a.root.rotation.x=(active?.8:-.15)*wind*s;
+      a.elbow.rotation.x=(active?-1.0:.2)*wind;
+      a.wrist.rotation.y=s*.7*strike;
+    }else if(kind==='quadruped'){
+      a.root.rotation.x=(active?1.05:-.25)*wind*s;
+      a.elbow.rotation.x=(active?-.9:.25)*wind;
+      a.wrist.rotation.x=(active?-1.15:.15)*wind;
+    }else if(kind==='wraith'){
+      a.root.rotation.x=(active?1.3:-.2)*wind*s;
+      a.elbow.rotation.z=s*.45*strike;
+      a.wrist.rotation.y=s*.65*strike;
+    }else{
+      a.root.rotation.x=(active?1.15:-.3)*wind*s;
+      a.root.rotation.z=s*.22*strike;
+      a.elbow.rotation.x=(active?-1.25:.45)*wind;
+      a.elbow.rotation.z=s*.18*strike;
+      a.wrist.rotation.x=(active?-1.05:.28)*wind;
+      a.wrist.rotation.y=s*.35*strike;
+    }
    });
    if(rig.weapon){
-    rig.weapon.rotation.x=-1.7*strike;rig.weapon.rotation.y=.45*strike;rig.weapon.rotation.z=-.8*wind;
+    if(kind==='orc'){rig.weapon.rotation.x=-2.05*strike;rig.weapon.rotation.y=.62*strike;rig.weapon.rotation.z=-1.0*wind}
+    else if(kind==='wraith'){rig.weapon.rotation.x=-1.45*strike;rig.weapon.rotation.y=-.7*strike;rig.weapon.rotation.z=.35*wind}
+    else if(kind==='humanoid'){rig.weapon.rotation.x=-1.7*strike;rig.weapon.rotation.y=.45*strike;rig.weapon.rotation.z=-.8*wind}
+    else {rig.weapon.rotation.x=-1.25*strike;rig.weapon.rotation.y=.5*strike;rig.weapon.rotation.z=-.5*wind}
    }
  }
 }
@@ -363,7 +388,7 @@ if(player.attack>0){player.attack=Math.max(0,player.attack-dt);player.attackT+=d
 for(const e of enemies){if(!e.model)continue;
 if(e.deathStarted){e.deathT+=dt;const p=Math.min(1,e.deathT/.7);e.model.position.y=p*.9;e.model.rotation.z=p*Math.PI*.65;e.model.scale.setScalar(1-p*.65);if(p>=1){scene.remove(e.model);e.model=null;continue}continue}
 if(e.hitT>0){e.hitT=Math.max(0,e.hitT-dt);e.model.position.z=e.z+(Math.sin(e.hitT*Math.PI*7)*.09);e.model.rotation.x=Math.sin(e.hitT*Math.PI*8)*.08}
-if(e.attackState===1){e.attackT+=dt;const p=Math.min(1,e.attackT/.52);const q=Math.sin(p*Math.PI);e.model.position.y=Math.sin(p*Math.PI)*(.25+(e.kind==='Loup des Brumes'?.35:0));e.model.rotation.x=(e.kind==='Orc'?.32:-.18)*q;animateArticulation(e.rig,phase,false,true,e.attackT);if(p>=1){e.attackState=0;e.attackT=0;e.attackHit=false;e.model.position.y=0;e.model.rotation.x=0}}else{animateArticulation(e.rig,phase,false,false,0);e.model.position.y=Math.sin(phase*(e.kind==='Spectre'?2.1:3.2)+e.x)*(.025+(e.kind==='Spectre'?.08:0));if(e.kind==='Loup des Brumes')e.model.rotation.x=Math.sin(phase*4+e.x)*.025}}}
+if(e.attackState===1){e.attackT+=dt;const p=Math.min(1,e.attackT/.52);const q=Math.sin(p*Math.PI);const lunge=e.kind==='Loup des Brumes'?.35:e.kind==='Araignée géante'?.12:e.kind==='Orc'?.08:0;e.model.position.y=Math.sin(p*Math.PI)*(.25+lunge);e.model.rotation.x=(e.kind==='Orc'?.38:e.kind==='Loup des Brumes'?.24:e.kind==='Spectre'?.08:-.18)*q;e.model.rotation.z=(e.kind==='Gobelin'?Math.sin(p*Math.PI)*.16:0);animateArticulation(e.rig,phase,false,true,e.attackT);if(p>=1){e.attackState=0;e.attackT=0;e.attackHit=false;e.model.position.y=0;e.model.rotation.x=0}}else{animateArticulation(e.rig,phase,false,false,0);e.model.position.y=Math.sin(phase*(e.kind==='Spectre'?2.1:3.2)+e.x)*(.025+(e.kind==='Spectre'?.08:0));if(e.kind==='Loup des Brumes')e.model.rotation.x=Math.sin(phase*4+e.x)*.025}}}
 }
 async function startGame(e){if(e){e.preventDefault();e.stopPropagation()}if(started)return;started=true;try{if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{});if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch(_){}const intro=document.getElementById('intro');if(intro)intro.style.display='none';toast('🌅 Les Héritiers du Royaume Perdu commencent. Retrouve Lyra au village.');try{renderer.domElement.focus()}catch(_){} }
 window.__OTAKU_START__=startGame;
