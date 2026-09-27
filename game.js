@@ -9,15 +9,15 @@ const M=(c,r=.8,m=0)=>new T.MeshStandardMaterial({color:c,roughness:r,metalness:
 const G=(c,o=.85)=>new T.MeshBasicMaterial({color:c,transparent:true,opacity:o,depthWrite:false});
 const mesh=(g,m)=>{const o=new T.Mesh(g,m);o.castShadow=true;o.receiveShadow=true;return o};
 const box=(w,h,d,m)=>mesh(new T.BoxGeometry(w,h,d),m),cyl=(r,h,m,n=16)=>mesh(new T.CylinderGeometry(r,r*.92,h,n),m),sph=(r,m)=>mesh(new T.SphereGeometry(r,18,14),m),cone=(r,h,m,n=7)=>mesh(new T.ConeGeometry(r,h,n),m);
-const rand=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
+const rand=(a,b)=>a+Math.random()*(b-a),dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);const envObstacles=[];
 const world=box(190,.8,190,M(0x243d2d));world.position.y=-.4;scene.add(world);
 const grass=box(175,.12,175,M(0x3d5c36));grass.position.y=.04;scene.add(grass);
 const water=box(13,.22,175,M(0x1c6280,.28));water.position.set(35,.08,0);scene.add(water);
 function road(x,z,w,d,r=0){const q=box(w,.07,d,M(0x9d7a58));q.position.set(x,.13,z);q.rotation.y=r;scene.add(q)}
 road(0,10,7,130);road(-18,-16,5,55,Math.PI/2);road(18,-18,5,45,Math.PI/2);road(0,-42,5,40);
-function tree(x,z,s=1,dead=false){const g=new T.Group(),tr=cyl(.38,2.5,M(dead?0x3b3027:0x503322),12);tr.position.y=1.25;g.add(tr);if(dead){const br=cyl(.12,2,M(0x392a24),8);br.rotation.z=.65;br.position.set(.35,2.2,0);g.add(br)}else{for(const [y,r,c] of [[3.1,2.1,0x28583a],[4.55,1.65,0x347044],[5.55,1.05,0x418653]]){const a=cone(r,2.7,M(c),8);a.position.y=y;g.add(a)}}g.position.set(x,0,z);g.scale.setScalar(s);scene.add(g)}
+function tree(x,z,s=1,dead=false){const g=new T.Group();envObstacles.push({x,z,r:.7*s});tr=cyl(.38,2.5,M(dead?0x3b3027:0x503322),12);tr.position.y=1.25;g.add(tr);if(dead){const br=cyl(.12,2,M(0x392a24),8);br.rotation.z=.65;br.position.set(.35,2.2,0);g.add(br)}else{for(const [y,r,c] of [[3.1,2.1,0x28583a],[4.55,1.65,0x347044],[5.55,1.05,0x418653]]){const a=cone(r,2.7,M(c),8);a.position.y=y;g.add(a)}}g.position.set(x,0,z);g.scale.setScalar(s);scene.add(g)}
 for(let i=0;i<(MOBILE?30:55);i++){let x=rand(-78,78),z=rand(-78,78);if(Math.abs(x)<25&&Math.abs(z)<30)continue;tree(x,z,rand(.65,1.35),z<-48)}
-function rock(x,z,s=1){const r=mesh(new T.DodecahedronGeometry(rand(.7,1.3)*s,1),M(0x66717a));r.position.set(x,rand(.2,.7),z);r.scale.y=.65;scene.add(r)}
+function rock(x,z,s=1){envObstacles.push({x,z,r:1.35*s});const r=mesh(new T.DodecahedronGeometry(rand(.7,1.3)*s,1),M(0x66717a));r.position.set(x,rand(.2,.7),z);r.scale.y=.65;scene.add(r)}
 for(let i=0;i<(MOBILE?22:42);i++)rock(rand(-80,80),rand(-80,80),rand(.6,1.5));
 function mountain(x,z,s){const b=cone(11*s,20*s,M(0x3c4b60),8);b.position.set(x,10*s,z);scene.add(b);const sn=cone(4*s,7*s,M(0xd8e1e5),8);sn.position.set(x,18*s,z);scene.add(sn)}
 mountain(-62,-70,2.4);mountain(-12,-82,2.8);mountain(48,-70,2.3);mountain(75,-20,1.8);
@@ -71,9 +71,23 @@ function blockedAt(x,z){
   }
   return false;
 }
+function blockedDynamicAt(x,z){
+  const heroR=.62;
+  for(const o of envObstacles)if(Math.hypot(x-o.x,z-o.z)<heroR+o.r)return true;
+  for(const e of enemies||[])if(!e.dead&&Math.hypot(x-e.x,z-e.z)<heroR+(e.radius||.7))return true;
+  return false;
+}
+function blockedSolidAt(x,z){return blockedAt(x,z)||blockedDynamicAt(x,z)}
 function movePlayer(nx,nz){
-  if(!blockedAt(nx,player.z))player.x=nx;else player.vx=0;
-  if(!blockedAt(player.x,nz))player.z=nz;else player.vz=0;
+  if(!blockedSolidAt(nx,player.z))player.x=nx;else player.vx=0;
+  if(!blockedSolidAt(player.x,nz))player.z=nz;else player.vz=0;
+}
+function separateFromDynamic(){
+  for(const e of enemies){
+    if(e.dead)continue;
+    const dx=player.x-e.x,dz=player.z-e.z,d=Math.hypot(dx,dz),min=.62+(e.radius||.7);
+    if(d>0&&d<min){const q=(min-d)/d;player.x+=dx*q;player.z+=dz*q;}
+  }
 }
 function buildCollisions(){
   [[-10,-13,5.8,4.8],[10,-13,5.3,4.8],[-11,-25,4.6,4],[11,-24,4.8,4],[-20,-17,4,3.8],[20,-20,4.2,4]].forEach(v=>addBlocker(...v));
@@ -88,6 +102,7 @@ function buildCollisions(){
   addBlocker(94.7,74.1,2.1,.35);
 }
 buildCollisions();
+for(const o of envObstacles)addBlocker(o.x,o.z,o.r*2.1,o.r*2.1,.05);
 // Le monde ne doit jamais attendre le téléchargement des modèles 3D distants.
 // Les personnages se chargent en arrière-plan : le joueur peut entrer immédiatement.
 start.disabled=false;start.textContent='ENTRER DANS LE MONDE';status.textContent='✓ Monde prêt · personnages 3D en chargement en arrière-plan…';
@@ -99,7 +114,7 @@ function wolf(){const g=new T.Group(),b=box(1.25,.65,.55,M(0x59636e));b.position
 function wraith(){const g=new T.Group(),b=sph(.75,G(0x76a7ff,.45));b.position.y=1.2;g.add(b);const eye=sph(.16,G(0xffffff));eye.position.set(0,1.3,.68);g.add(eye);return g}
 const kinds=[['Gobelin',goblin,65,12,1.8],['Slime',slime,45,9,1.3],['Loup des Brumes',wolf,80,15,2.2],['Spectre',wraith,105,18,1.4]];
 const enemies=[];
-function spawn(kind,x,z){const k=kinds[kind],e={kind:k[0],model:k[1](),x,z,hp:k[2]+S.level*7,max:k[2]+S.level*7,atk:k[3],speed:k[4],cd:rand(0,.8),dead:false};e.model.position.set(x,0,z);scene.add(e.model);enemies.push(e);return e}
+function spawn(kind,x,z){const k=kinds[kind],e={kind:k[0],model:k[1](),x,z,radius:k[4]*.28,hp:k[2]+S.level*7,max:k[2]+S.level*7,atk:k[3],speed:k[4],cd:rand(0,.8),dead:false};e.model.position.set(x,0,z);scene.add(e.model);enemies.push(e);return e}
 for(let i=0;i<5;i++)spawn(0,rand(-48,-27),rand(-40,5));
 for(let i=0;i<4;i++)spawn(1,rand(25,65),rand(-45,45));
 for(let i=0;i<4;i++)spawn(2,rand(20,60),rand(25,70));
@@ -143,8 +158,10 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 let started=false,last=performance.now(),phase=0;
 function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;phase+=dt;
 if(started&&!dialog){lyra.model.position.set(lyra.x,0,lyra.z);lyra.model.rotation.y=Math.sin(phase*.5)*.18;let x=(keys.d?1:0)-(keys.a?1:0),z=(keys.s?1:0)-(keys.w?1:0);const joy=document.getElementById('joystick');if(joy&&joy.dataset.active==='1'){x=+(joy.dataset.x||0);z=+(joy.dataset.z||0)}const l=Math.hypot(x,z);if(l>0.04){x/=l;z/=l;const accel=22;player.vx+=(x*5.8-player.vx)*Math.min(1,accel*dt);player.vz+=(z*5.8-player.vz)*Math.min(1,accel*dt);const nx=player.x+player.vx*dt,nz=player.z+player.vz*dt;movePlayer(nx,nz);if(Math.hypot(player.vx,player.vz)>.05)player.model.rotation.y=Math.atan2(player.vx,player.vz)+Math.PI;player.walking=true}else{player.vx*=Math.pow(.001,dt);player.vz*=Math.pow(.001,dt);if(Math.hypot(player.vx,player.vz)<.05){player.vx=0;player.vz=0}player.walking=Math.hypot(player.vx,player.vz)>.12;}
-player.x=Math.max(-82,Math.min(82,player.x));player.z=Math.max(-82,Math.min(82,player.z));player.model.position.set(player.x,0,player.z);
-for(const e of enemies){if(e.dead)continue;e.cd-=dt;const dx=player.x-e.x,dz=player.z-e.z,d=Math.hypot(dx,dz);if(d<22&&d>.4){e.x+=dx/d*e.speed*dt;e.z+=dz/d*e.speed*dt;e.model.position.set(e.x,0,e.z);e.model.rotation.y=Math.atan2(dx,dz)}if(d<1.7&&e.cd<=0){e.cd=1.1;const taken=Math.max(1,e.atk-Math.floor((S.armorLevel||1)*1.5));S.hp=Math.max(0,S.hp-taken);toast('💥 '+e.kind+' t’attaque ! -'+taken);if(S.hp===0){S.hp=S.maxHp*.55;player.x=S.saveX??0;player.z=S.saveZ??18;player.vx=0;player.vz=0;S.gold=Math.max(0,S.gold-20);toast('💀 Tu as été vaincu. Retour au village.')}save()}}
+separateFromDynamic();player.x=Math.max(-82,Math.min(82,player.x));player.z=Math.max(-82,Math.min(82,player.z));player.model.position.set(player.x,0,player.z);
+for(const e of enemies){if(e.dead)continue;e.cd-=dt;const dx=player.x-e.x,dz=player.z-e.z,d=Math.hypot(dx,dz);if(d<22&&d>.4){const ex=e.x+dx/d*e.speed*dt,ez=e.z+dz/d*e.speed*dt;
+if(!blockedAt(ex,ez)){e.x=ex;e.z=ez;}
+e.model.position.set(e.x,0,e.z);e.model.rotation.y=Math.atan2(dx,dz)}if(d<1.7&&e.cd<=0){e.cd=1.1;const taken=Math.max(1,e.atk-Math.floor((S.armorLevel||1)*1.5));S.hp=Math.max(0,S.hp-taken);toast('💥 '+e.kind+' t’attaque ! -'+taken);if(S.hp===0){S.hp=S.maxHp*.55;player.x=S.saveX??0;player.z=S.saveZ??18;player.vx=0;player.vz=0;S.gold=Math.max(0,S.gold-20);toast('💀 Tu as été vaincu. Retour au village.')}save()}}
 attackCd=Math.max(0,attackCd-dt);if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)document.getElementById('message').style.display='none'}hud()}
 const night=(Math.sin(phase*.025)+1)/2;sun.intensity=1.15+night*1.4;scene.fog.density=.0058+night*.003;scene.background.setHSL(.60,.45,.07+.06*night);animate(dt);
 const camDist=MOBILE?7.8:10.5;const camTarget=new T.Vector3(player.x+camDist*.72,MOBILE?5.2:6.6,player.z+camDist);camera.position.lerp(camTarget,1-Math.pow(.001,dt));camera.lookAt(new T.Vector3(player.x,1.55,player.z));renderer.render(scene,camera);requestAnimationFrame(loop)}
