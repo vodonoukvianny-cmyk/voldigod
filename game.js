@@ -68,7 +68,7 @@ function fallbackHero(target,h,type){
  const mouth=box(.16,.025,.02,M(0x6b3440));mouth.position.set(0,2.08,.43);g.add(mouth);
  const cape=box(.82,1.18,.08,dark);cape.position.set(0,1.34,-.35);g.add(cape);
  const scabbard=cyl(.075,1.35,leatherMaterial(),7);scabbard.position.set(-.48,1.05,-.18);scabbard.rotation.z=-.35;g.add(scabbard);
- fit(g,h);target.model=g;target.ready=true;g.position.set(target.x||0,0,target.z||0);scene.add(g);actorShadow(target,.72);weapon(target,type);target.model.userData.weapon=target.weapon||null;target.model.userData.rig=buildArticulation(target.model,'hero');if(target.weapon&&target.model.userData.rig.arms.length>1){target.model.userData.rig.arms[1].attach(target.weapon);target.weapon.position.set(0,-.48,.22);target.weapon.rotation.set(-.35,0,-.35)}heroMarker(target,'AREN',0x69a7ff);return g
+ fit(g,h);target.model=g;target.ready=true;g.position.set(target.x||0,0,target.z||0);scene.add(g);actorShadow(target,.72);weapon(target,type);target.model.userData.weapon=target.weapon||null;target.model.userData.rig=buildArticulation(target.model,'hero');if(target.weapon&&target.model.userData.rig.arms.length>1){target.model.userData.rig.arms[1].wrist.attach(target.weapon);target.weapon.position.set(0,-.12,.18);target.weapon.rotation.set(-.35,0,-.35)}heroMarker(target,'AREN',0x69a7ff);return g
 }
 function leatherMaterial(){return M(0x5a3825)}
 
@@ -157,6 +157,37 @@ function legChain(parent,side,hipY,hipX,kind){
  joint(ankle,{x:0,y:0,z:0},.085,kind==='orc'?0x566b35:0x8b765e);
  return {root:hip,knee,ankle,side:s};
 }
+function segmentBetween(parent,a,b,thick,mat){
+ const d=new T.Vector3(b.x-a.x,b.y-a.y,b.z-a.z),len=d.length(),m=mesh(new T.CylinderGeometry(thick,thick*.94,Math.max(.12,len),8),mat);
+ m.position.set((a.x+b.x)/2,(a.y+b.y)/2,(a.z+b.z)/2);
+ m.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),d.normalize());parent.add(m);return m;
+}
+function clearPivotVisual(p){
+ if(!p)return;
+ const keep=[];
+ p.children.slice().forEach(o=>{if(o.userData&&o.userData.jointMarker)keep.push(o);else p.remove(o)});
+}
+function addHumanLikeVisuals(rig,kind){
+ if(!rig)return;
+ const skin=kind==='orc'?M(0x6d8b45):kind==='hero'?M(0xd8a27f):kind==='wraith'?M(0x8d91bd):M(0x7aa35a);
+ const cloth=kind==='orc'?M(0x35422f):kind==='hero'?M(0x477a92):M(0x51455f);
+ const armor=kind==='orc'?M(0x56606b,.45,.45):kind==='hero'?M(0xcbd5df,.28,.72):M(0x687080,.48,.3);
+ rig.arms.forEach(a=>{
+   clearPivotVisual(a.root);clearPivotVisual(a.elbow);clearPivotVisual(a.wrist);
+   const side=a.side||1, shoulder={x:0,y:0,z:0}, elbow={x:0,y:-.42,z:0}, wrist={x:0,y:-.42,z:0};
+   segmentBetween(a.root,shoulder,elbow,.145,kind==='orc'?cloth:armor);
+   segmentBetween(a.elbow,{x:0,y:0,z:0},wrist,.125,skin);
+   const hand=sph(.14,skin);hand.position.set(0,0,0);a.wrist.add(hand);
+   const cuff=box(.25,.16,.25,armor);cuff.position.set(0,-.05,0);a.wrist.add(cuff);
+ });
+ rig.legs.forEach(l=>{
+   clearPivotVisual(l.root);clearPivotVisual(l.knee);clearPivotVisual(l.ankle);
+   const upper=kind==='orc'?M(0x3e4a35):kind==='hero'?M(0x1f3f69):M(0x555b67);
+   segmentBetween(l.root,{x:0,y:0,z:0},{x:0,y:-.42,z:0},.17,upper);
+   segmentBetween(l.knee,{x:0,y:0,z:0},{x:0,y:-.38,z:0},.145,skin);
+   const foot=box(.28,.14,.5,kind==='hero'?M(0x242a34):M(0x31343a));foot.position.set(0,-.38,.10);l.ankle.add(foot);
+ });
+}
 function buildArticulation(g,kind='humanoid'){
  const direct=g.children.slice(),arms=[],legs=[];
  for(const o of direct){if(!o.isMesh)continue;const x=o.position.x,y=o.position.y,ax=Math.abs(x);
@@ -186,7 +217,7 @@ function buildArticulation(g,kind='humanoid'){
     if(le.children.length||li.length)rig.legs.push({root:le,knee:lk,ankle:la,side});
    }
  }
- g.userData.rig=rig;return rig
+ g.userData.rig=rig;addHumanLikeVisuals(rig,kind);return rig
 }
 function animateArticulation(rig,t,walk,attack,attackT){
  if(!rig)return;
