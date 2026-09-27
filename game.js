@@ -222,23 +222,36 @@ function buildArticulation(g,kind='humanoid'){
 function animateArticulation(rig,t,walk,attack,attackT){
  if(!rig)return;
  const cycle=t*9.5;
+ const moving=walk;
+ const speedBob=moving?Math.sin(cycle*2)*.035:0;
  rig.legs.forEach((l,i)=>{
    const s=l.side||((i%2)?-1:1),phase=i%2?Math.PI:0;
-   const step=walk?Math.sin(cycle+phase):0;
-   l.root.rotation.x=step*.48;l.root.rotation.z=walk?s*.045:0;
-   l.knee.rotation.x=walk?Math.max(0,-step)*.72:0;
-   l.knee.rotation.z=walk?s*.035:0;
-   l.ankle.rotation.x=walk?-step*.32:0;
-   l.ankle.rotation.z=walk?s*.02:0;
+   const step=moving?Math.sin(cycle+phase):0;
+   const lift=moving?Math.max(0,Math.sin(cycle+phase)):.0;
+   l.root.rotation.x=step*.48;
+   l.root.rotation.z=moving?s*.055:0;
+   l.knee.rotation.x=moving?Math.max(0,-step)*.78:0;
+   l.knee.rotation.z=moving?s*.035:0;
+   l.ankle.rotation.x=moving?-step*.34:0;
+   l.ankle.rotation.z=moving?s*.025:0;
+   l.ankle.position.y=-.38+lift*.025;
  });
  rig.arms.forEach((a,i)=>{
    const s=a.side||((i%2)?-1:1),phase=i%2?Math.PI:0;
-   const swing=walk?Math.sin(cycle+phase):0;
-   a.root.rotation.x=swing*.28;a.root.rotation.z=walk?s*.08:0;
-   a.elbow.rotation.x=walk?Math.max(0,-swing)*.28:0;
-   a.wrist.rotation.x=walk?-swing*.12:0;
-   a.wrist.rotation.z=walk?s*.04:0;
+   const swing=moving?Math.sin(cycle+phase):0;
+   a.root.rotation.x=swing*.34;
+   a.root.rotation.z=moving?s*.085:0;
+   a.elbow.rotation.x=moving?Math.max(0,-swing)*.32:0;
+   a.wrist.rotation.x=moving?-swing*.15:0;
+   a.wrist.rotation.z=moving?s*.045:0;
  });
+ if(moving){
+   rig.arms.forEach((a,i)=>{a.wrist.rotation.y+=Math.sin(cycle+(i?Math.PI:0))*.012});
+ }
+ if(rig.kind==='hero'&&!attack){
+   const breathe=Math.sin(t*2.1)*.018;
+   rig.arms.forEach(a=>a.root.rotation.x+=breathe);
+ }
  if(attack){
    const p=Math.min(1,attackT/.52),wind=p<.38?p/.38:(1-p)/.62,strike=Math.sin(Math.min(1,p)*Math.PI);
    const kind=rig.kind||'humanoid';
@@ -384,7 +397,7 @@ function animate(dt){for(const m of mixers)m.update(dt);
 for(let i=fx.length-1;i>=0;i--){const f=fx[i];if(f.update){if(f.update(f,dt)===true)fx.splice(i,1);continue}f.t+=dt;f.g.scale.setScalar(1+f.t*1.7);f.g.rotation.y+=dt*10;f.g.children[0].material.opacity=Math.max(0,1-f.t*3);if(f.t>.55){scene.remove(f.g);fx.splice(i,1)}}
 if(lyra.model){lyra.model.position.y=Math.sin(phase*1.6)*.025}if(player.shadow){player.shadow.position.x=player.x;player.shadow.position.z=player.z;}
 const a=player.actions,w=a&&(player.attack>0?a.idle:(player.walking?a.walk:a.idle));if(w&&!w.isRunning()){Object.values(a).filter(Boolean).forEach(x=>x.stop());w.reset().fadeIn(.12).play()}
-if(player.attack>0){player.attack=Math.max(0,player.attack-dt);player.attackT+=dt;const p=Math.min(1,player.attackT/.5);player.model.rotation.y+=Math.sin(p*Math.PI)*1.8}animateArticulation(player.model.userData.rig,phase,player.walking,player.attack,player.attackT);
+if(player.attack>0){player.attack=Math.max(0,player.attack-dt);player.attackT+=dt;const p=Math.min(1,player.attackT/.5);player.model.rotation.y+=Math.sin(p*Math.PI)*1.8}animateArticulation(player.model.userData.rig,phase,player.walking,player.attack,player.attackT);player.model.position.y+=(Math.sin(phase*19)*.012-player.model.position.y)*Math.min(1,player.walking?10:4);
 for(const e of enemies){if(!e.model)continue;
 if(e.deathStarted){e.deathT+=dt;const p=Math.min(1,e.deathT/.7);e.model.position.y=p*.9;e.model.rotation.z=p*Math.PI*.65;e.model.scale.setScalar(1-p*.65);if(p>=1){scene.remove(e.model);e.model=null;continue}continue}
 if(e.hitT>0){e.hitT=Math.max(0,e.hitT-dt);e.model.position.z=e.z+(Math.sin(e.hitT*Math.PI*7)*.09);e.model.rotation.x=Math.sin(e.hitT*Math.PI*8)*.08}
