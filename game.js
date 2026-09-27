@@ -191,7 +191,7 @@ function orc(){const g=new T.Group(),skin=M(0x617640),armor=M(0x453c35),leather=
  return creatureFinish(g)}
 const kinds=[['Gobelin',goblin,65,12,1.8],['Araignée géante',giantSpider,95,17,1.7],['Loup des Brumes',wolf,80,15,2.2],['Spectre',wraith,105,18,1.4],['Orc',orc,145,22,1.55]];
 const enemies=[];
-function spawn(kind,x,z){const k=kinds[kind],e={kind:k[0],model:k[1](),x,z,radius:k[4]*.28,hp:k[2]+S.level*7,max:k[2]+S.level*7,atk:k[3],speed:k[4],cd:rand(0,.8),dead:false};e.model.position.set(x,0,z);scene.add(e.model);enemies.push(e);return e}
+function spawn(kind,x,z){const k=kinds[kind],e={kind:k[0],model:k[1](),x,z,radius:k[4]*.28,hp:k[2]+S.level*7,max:k[2]+S.level*7,atk:k[3],speed:k[4],cd:rand(0,.8),dead:false,attackState:0,attackT:0,attackBaseY:0};e.model.position.set(x,0,z);scene.add(e.model);enemies.push(e);return e}
 for(let i=0;i<5;i++)spawn(0,rand(-48,-27),rand(-40,5));
 for(let i=0;i<4;i++)spawn(1,rand(25,65),rand(-45,45));
 for(let i=0;i<4;i++)spawn(2,rand(20,60),rand(25,70));
@@ -214,8 +214,25 @@ let attackCd=0;
 function slashEffect(){const g=new T.Group();const a=mesh(new T.TorusGeometry(1.35,.1,8,24,Math.PI*1.35),G(0x9fe6ff,.95));a.rotation.x=Math.PI/2;g.add(a);g.position.set(player.x,1.4,player.z+1);scene.add(g);fx.push({g,t:0})}
 const fx=[];
 function attack(){if(!started||dialog||attackCd>0)return;attackCd=.45;let best=null,bd=4;for(const e of enemies){const d=dist(player,e);if(d<bd){bd=d;best=e}}if(!best)return toast('Aucun ennemi à portée.');const critChance=.08+(S.crit||0)*.03;const critical=Math.random()<critChance;let power=1;if((S.awakening||0)>=1)power+=.12;if((S.awakening||0)>=2&&critical)power+=.25;if((S.awakening||0)>=3)power+=.12;const damage=Math.round((25+S.level*6+(S.weaponLevel||1)*4+(S.skills||0)*3)*power*(critical?1.8:1));best.hp-=damage;player.attack=.42;player.attackT=0;slashEffect();toast((critical?'💥 CRITIQUE — ':'⚔️ IMPACT — ')+best.kind+' -'+damage);if(best.hp<=0){scene.remove(best.model);best.dead=true;S.kills++;S.gold+=best.kind==='Gobelin'?16:11;S.rep+=best.kind==='Gobelin'?4:2;S.guild+=2;if((S.stage||0)>=4&&Math.random()<.55){S.relics=Math.min(7,(S.relics||0)+1);toast('👑 Un fragment ancien tombe de '+best.kind+' !')}gainxp(best.kind==='Loup des Brumes'?38:28);if(S.stage===2&&S.kills>=3){S.stage=3;toast('🏆 Mission accomplie ! Retourne voir Lyra.')}if(S.relics>=7&&S.stage>=5){S.stage=6;S.chapter=4;toast('👑 Les sept fragments sont réunis : le sceau peut être brisé !')}save()}}
+function enemyAttackFX(e){
+ const color=e.kind==='Orc'?0xff5a42:e.kind==='Spectre'?0x9c8cff:e.kind==='Araignée géante'?0x72d8ff:e.kind==='Loup des Brumes'?0xffc45a:0x8cff75;
+ const g=new T.Group();const ring=mesh(new T.TorusGeometry(e.kind==='Orc'?1.45:.95,.085,8,24),G(color,.9));ring.rotation.x=Math.PI/2;ring.position.set(player.x,.08,player.z);g.add(ring);
+ const arc=mesh(new T.TorusGeometry(.75,.06,7,18,Math.PI*1.25),G(color,.95));arc.rotation.x=Math.PI/2;arc.position.set(player.x,1.1,player.z);g.add(arc);scene.add(g);
+ fx.push({g,t:0,enemy:true,dur:.42,update(f,dt){f.t+=dt;const p=Math.min(1,f.t/f.dur);ring.scale.setScalar(.75+p*1.35);ring.material.opacity=Math.max(0,1-p);arc.scale.setScalar(.7+p*1.15);arc.material.opacity=Math.max(0,1-p);arc.rotation.z+=dt*7;if(f.t>=f.dur){scene.remove(f.g);return true}}});
+}
+function enemyWindupFX(e){
+ const color=e.kind==='Orc'?0xff5a42:e.kind==='Spectre'?0x9c8cff:e.kind==='Araignée géante'?0x72d8ff:e.kind==='Loup des Brumes'?0xffc45a:0x8cff75;
+ const g=new T.Group();const r=mesh(new T.TorusGeometry(e.kind==='Orc'?1.2:.72,.065,7,20),G(color,.8));r.rotation.x=Math.PI/2;r.position.set(e.x,.06,e.z);g.add(r);scene.add(g);
+ fx.push({g,t:0,enemy:true,dur:.48,update(f,dt){f.t+=dt;const p=Math.min(1,f.t/f.dur);r.scale.setScalar(.5+p*1.25);r.material.opacity=.8-p*.8;r.rotation.z+=dt*2.5;f.g.position.x=e.x;f.g.position.z=e.z;if(f.t>=f.dur){scene.remove(f.g);return true}}});
+}
 function skill(){S.skillPoints=S.skillPoints||0;if(S.skillPoints>0){S.skillPoints--;S.skills++;S.maxHp+=7;S.crit=Math.min(8,(S.crit||0)+1);toast('✨ Technique '+S.skills+' débloquée !');save();return}if(S.gold<35)return toast('Aucun point de technique. Il faut 35 pièces pour apprendre.');S.gold-=35;S.skills++;S.maxHp+=5;S.crit=Math.min(8,(S.crit||0)+1);toast('✨ Nouvelle technique apprise !');save()}
-function animate(dt){for(const m of mixers)m.update(dt);for(let i=fx.length-1;i>=0;i--){const f=fx[i];f.t+=dt;f.g.scale.setScalar(1+f.t*1.7);f.g.rotation.y+=dt*10;f.g.children[0].material.opacity=Math.max(0,1-f.t*3);if(f.t>.55){scene.remove(f.g);fx.splice(i,1)}}if(lyra.model){lyra.model.position.y=Math.sin(phase*1.6)*.025}if(player.shadow){player.shadow.position.x=player.x;player.shadow.position.z=player.z;}const a=player.actions,w=a&&(player.attack>0?a.idle:(player.walking?a.walk:a.idle));if(w&&!w.isRunning()){Object.values(a).filter(Boolean).forEach(x=>x.stop());w.reset().fadeIn(.12).play()}if(player.attack>0){player.attack=Math.max(0,player.attack-dt);player.attackT+=dt;const p=Math.min(1,player.attackT/.42);player.model.rotation.y+=Math.sin(p*Math.PI)*1.8}}
+function animate(dt){for(const m of mixers)m.update(dt);
+for(let i=fx.length-1;i>=0;i--){const f=fx[i];if(f.update){if(f.update(f,dt)===true)fx.splice(i,1);continue}f.t+=dt;f.g.scale.setScalar(1+f.t*1.7);f.g.rotation.y+=dt*10;f.g.children[0].material.opacity=Math.max(0,1-f.t*3);if(f.t>.55){scene.remove(f.g);fx.splice(i,1)}}
+if(lyra.model){lyra.model.position.y=Math.sin(phase*1.6)*.025}if(player.shadow){player.shadow.position.x=player.x;player.shadow.position.z=player.z;}
+const a=player.actions,w=a&&(player.attack>0?a.idle:(player.walking?a.walk:a.idle));if(w&&!w.isRunning()){Object.values(a).filter(Boolean).forEach(x=>x.stop());w.reset().fadeIn(.12).play()}
+if(player.attack>0){player.attack=Math.max(0,player.attack-dt);player.attackT+=dt;const p=Math.min(1,player.attackT/.42);player.model.rotation.y+=Math.sin(p*Math.PI)*1.8}
+for(const e of enemies){if(e.dead||!e.model)continue;if(e.attackState===1){e.attackT+=dt;const p=Math.min(1,e.attackT/.48);const q=Math.sin(p*Math.PI);e.model.position.y=Math.sin(p*Math.PI)*(.25+(e.kind==='Loup des Brumes'?.35:0));e.model.rotation.x=(e.kind==='Orc'?.32:-.18)*q;if(p>=1){e.attackState=0;e.attackT=0;e.model.position.y=0;e.model.rotation.x=0}}else{e.model.position.y=Math.sin(phase*(e.kind==='Spectre'?2.1:3.2)+e.x)*(.025+(e.kind==='Spectre'?.08:0))}}
+}
 async function startGame(e){if(e){e.preventDefault();e.stopPropagation()}if(started)return;started=true;try{if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{});if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch(_){}const intro=document.getElementById('intro');if(intro)intro.style.display='none';toast('🌅 Les Héritiers du Royaume Perdu commencent. Retrouve Lyra au village.');try{renderer.domElement.focus()}catch(_){} }
 window.__OTAKU_START__=startGame;
 start.addEventListener('pointerdown',e=>{e.preventDefault();startGame(e)},{passive:false});
@@ -256,7 +273,9 @@ if(started&&!dialog){lyra.model.position.set(lyra.x,0,lyra.z);lyra.model.rotatio
 separateFromDynamic();player.x=Math.max(-82,Math.min(82,player.x));player.z=Math.max(-82,Math.min(82,player.z));player.model.position.set(player.x,0,player.z);
 for(const e of enemies){if(e.dead)continue;e.cd-=dt;const dx=player.x-e.x,dz=player.z-e.z,d=Math.hypot(dx,dz);if(d<22&&d>.4){const ex=e.x+dx/d*e.speed*dt,ez=e.z+dz/d*e.speed*dt;
 if(!blockedAt(ex,ez)){e.x=ex;e.z=ez;}
-e.model.position.set(e.x,0,e.z);e.model.rotation.y=Math.atan2(dx,dz)}if(d<1.7&&e.cd<=0){e.cd=1.1;const taken=Math.max(1,e.atk-Math.floor((S.armorLevel||1)*1.5));S.hp=Math.max(0,S.hp-taken);toast('💥 '+e.kind+' t’attaque ! -'+taken);if(S.hp===0){S.hp=S.maxHp*.55;player.x=S.saveX??0;player.z=S.saveZ??28;player.vx=0;player.vz=0;S.gold=Math.max(0,S.gold-20);toast('💀 Tu as été vaincu. Retour au village.')}save()}}
+e.model.position.set(e.x,0,e.z);e.model.rotation.y=Math.atan2(dx,dz)}if(d<3.4&&e.cd<=0&&e.attackState===0){e.cd=1.15;e.attackState=1;e.attackT=0;e.attackBaseY=e.model.position.y;enemyWindupFX(e)}
+if(e.attackState===1&&e.attackT>=.25&&!e.attackHit){e.attackHit=true;enemyAttackFX(e);const taken=Math.max(1,e.atk-Math.floor((S.armorLevel||1)*1.5));S.hp=Math.max(0,S.hp-taken);toast('💥 '+e.kind+' attaque ! -'+taken);if(S.hp===0){S.hp=S.maxHp*.55;player.x=S.saveX??0;player.z=S.saveZ??28;player.vx=0;player.vz=0;S.gold=Math.max(0,S.gold-20);toast('💀 Tu as été vaincu. Retour au village.')}save()}
+if(e.attackState===0)e.attackHit=false;}
 attackCd=Math.max(0,attackCd-dt);if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)document.getElementById('message').style.display='none'}hud()}
 const night=(Math.sin(phase*.025)+1)/2;sun.intensity=1.15+night*1.4;scene.fog.density=.0058+night*.003;scene.background.setHSL(.60,.45,.07+.06*night);animate(dt);
 const camDist=MOBILE?8.6:10.8;const camSide=MOBILE?.55:.72;const camHeight=MOBILE?5.65:6.9;const camTarget=new T.Vector3(player.x+camDist*camSide,MOBILE?5.65:6.9,player.z+camDist);const camAlpha=1-Math.pow(.0008,dt);camera.position.lerp(camTarget,camAlpha);const look=new T.Vector3(player.x,1.35,player.z);camera.lookAt(look);renderer.render(scene,camera);requestAnimationFrame(loop)}
