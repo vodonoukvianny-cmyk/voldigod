@@ -1,9 +1,9 @@
 {
-  "name": "OTAKUJEUX — Renaissance",
+  "name": "OTAKUJEUX — Les Héritiers du Royaume Perdu",
   "short_name": "OTAKUJEUX",
-  "description": "RPG fantasy 3D mobile d'aventure.",
+  "description": "RPG fantasy 3D mobile d’aventure — Les Héritiers du Royaume Perdu.",
   "start_url": "./",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#08111b",
   "theme_color": "#8d6cff",
