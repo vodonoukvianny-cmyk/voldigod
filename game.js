@@ -219,35 +219,36 @@ function buildArticulation(g,kind='humanoid'){
  }
  g.userData.rig=rig;addHumanLikeVisuals(rig,kind);return rig
 }
-function animateArticulation(rig,t,walk,attack,attackT){
+function animateArticulation(rig,t,walk,attack,attackT,speed=0){
  if(!rig)return;
- const cycle=t*9.5;
- const moving=walk;
- const speedBob=moving?Math.sin(cycle*2)*.035:0;
+ const ratio=Math.max(0,Math.min(1,speed/5.8));
+ const active=!!walk&&!attack;
+ const gaitSpeed=6.8+ratio*4.8;
+ const cycle=t*gaitSpeed;
+ const stride=active?(0.58+ratio*.42):0;
  rig.legs.forEach((l,i)=>{
    const s=l.side||((i%2)?-1:1),phase=i%2?Math.PI:0;
-   const step=moving?Math.sin(cycle+phase):0;
-   const lift=moving?Math.max(0,Math.sin(cycle+phase)):.0;
+   const step=active?Math.sin(cycle+phase)*stride:0;
+   const lift=active?Math.max(0,Math.sin(cycle+phase))*(.018+ratio*.028):0;
    l.root.rotation.x=step*.48;
-   l.root.rotation.z=moving?s*.055:0;
-   l.knee.rotation.x=moving?Math.max(0,-step)*.78:0;
-   l.knee.rotation.z=moving?s*.035:0;
-   l.ankle.rotation.x=moving?-step*.34:0;
-   l.ankle.rotation.z=moving?s*.025:0;
-   l.ankle.position.y=-.38+lift*.025;
+   l.root.rotation.z=active?s*(.035+ratio*.04):0;
+   l.root.rotation.y=active?s*Math.sin(cycle+phase)*.025*ratio:0;
+   l.knee.rotation.x=active?Math.max(0,-step)*(.72+ratio*.24):0;
+   l.knee.rotation.z=active?s*.025*ratio:0;
+   l.ankle.rotation.x=active?-step*(.28+ratio*.16):0;
+   l.ankle.rotation.z=active?s*.02*ratio:0;
+   l.ankle.position.y=-.38+lift;
  });
  rig.arms.forEach((a,i)=>{
    const s=a.side||((i%2)?-1:1),phase=i%2?Math.PI:0;
-   const swing=moving?Math.sin(cycle+phase):0;
-   a.root.rotation.x=swing*.34;
-   a.root.rotation.z=moving?s*.085:0;
-   a.elbow.rotation.x=moving?Math.max(0,-swing)*.32:0;
-   a.wrist.rotation.x=moving?-swing*.15:0;
-   a.wrist.rotation.z=moving?s*.045:0;
+   const swing=active?Math.sin(cycle+phase):0;
+   a.root.rotation.x=swing*(.27+ratio*.16);
+   a.root.rotation.z=active?s*(.05+ratio*.045):0;
+   a.elbow.rotation.x=active?Math.max(0,-swing)*(.25+ratio*.16):0;
+   a.wrist.rotation.x=active?-swing*(.11+ratio*.08):0;
+   a.wrist.rotation.z=active?s*.025*ratio:0;
+   a.wrist.rotation.y=active?Math.sin(cycle+phase)*.018*ratio:0;
  });
- if(moving){
-   rig.arms.forEach((a,i)=>{a.wrist.rotation.y+=Math.sin(cycle+(i?Math.PI:0))*.012});
- }
  if(rig.kind==='hero'&&!attack){
    const breathe=Math.sin(t*2.1)*.018;
    rig.arms.forEach(a=>a.root.rotation.x+=breathe);
@@ -256,33 +257,21 @@ function animateArticulation(rig,t,walk,attack,attackT){
    const p=Math.min(1,attackT/.52),wind=p<.38?p/.38:(1-p)/.62,strike=Math.sin(Math.min(1,p)*Math.PI);
    const kind=rig.kind||'humanoid';
    rig.arms.forEach((a,i)=>{
-    const s=a.side||((i%2)?-1:1),active=i===1;
+    const s=a.side||((i%2)?-1:1),activeHand=i===1;
     if(kind==='orc'){
-      a.root.rotation.x=(active?1.55:-.2)*wind*s;
-      a.root.rotation.z=s*.28*strike;
-      a.elbow.rotation.x=(active?-1.45:.35)*wind;
-      a.elbow.rotation.z=s*.22*strike;
-      a.wrist.rotation.x=(active?-1.25:.2)*wind;
-      a.wrist.rotation.y=s*.5*strike;
+      a.root.rotation.x=(activeHand?1.55:-.2)*wind*s;a.root.rotation.z=s*.28*strike;
+      a.elbow.rotation.x=(activeHand?-1.45:.35)*wind;a.elbow.rotation.z=s*.22*strike;
+      a.wrist.rotation.x=(activeHand?-1.25:.2)*wind;a.wrist.rotation.y=s*.5*strike;
     }else if(kind==='spider'){
-      a.root.rotation.x=(active?.8:-.15)*wind*s;
-      a.elbow.rotation.x=(active?-1.0:.2)*wind;
-      a.wrist.rotation.y=s*.7*strike;
+      a.root.rotation.x=(activeHand?.8:-.15)*wind*s;a.elbow.rotation.x=(activeHand?-1:.2)*wind;a.wrist.rotation.y=s*.7*strike;
     }else if(kind==='quadruped'){
-      a.root.rotation.x=(active?1.05:-.25)*wind*s;
-      a.elbow.rotation.x=(active?-.9:.25)*wind;
-      a.wrist.rotation.x=(active?-1.15:.15)*wind;
+      a.root.rotation.x=(activeHand?1.05:-.25)*wind*s;a.elbow.rotation.x=(activeHand?-.9:.25)*wind;a.wrist.rotation.x=(activeHand?-1.15:.15)*wind;
     }else if(kind==='wraith'){
-      a.root.rotation.x=(active?1.3:-.2)*wind*s;
-      a.elbow.rotation.z=s*.45*strike;
-      a.wrist.rotation.y=s*.65*strike;
+      a.root.rotation.x=(activeHand?1.3:-.2)*wind*s;a.elbow.rotation.z=s*.45*strike;a.wrist.rotation.y=s*.65*strike;
     }else{
-      a.root.rotation.x=(active?1.15:-.3)*wind*s;
-      a.root.rotation.z=s*.22*strike;
-      a.elbow.rotation.x=(active?-1.25:.45)*wind;
-      a.elbow.rotation.z=s*.18*strike;
-      a.wrist.rotation.x=(active?-1.05:.28)*wind;
-      a.wrist.rotation.y=s*.35*strike;
+      a.root.rotation.x=(activeHand?1.15:-.3)*wind*s;a.root.rotation.z=s*.22*strike;
+      a.elbow.rotation.x=(activeHand?-1.25:.45)*wind;a.elbow.rotation.z=s*.18*strike;
+      a.wrist.rotation.x=(activeHand?-1.05:.28)*wind;a.wrist.rotation.y=s*.35*strike;
     }
    });
    if(rig.weapon){
@@ -293,7 +282,6 @@ function animateArticulation(rig,t,walk,attack,attackT){
    }
  }
 }
-
 function eyePair(g,y,z,color=0xffe15a){for(const x of[-1,1]){const e=sph(.085,G(color));e.position.set(x*.18,y,z);g.add(e)}}
 function goblin(){const g=new T.Group(),skin=M(0x709b43),cloth=M(0x4b3a2a),leather=M(0x76502d),metal=M(0x9da7ad,.3,.5);
  const body=box(.7,1.05,.52,cloth);body.position.y=1.0;g.add(body);
@@ -397,11 +385,11 @@ function animate(dt){for(const m of mixers)m.update(dt);
 for(let i=fx.length-1;i>=0;i--){const f=fx[i];if(f.update){if(f.update(f,dt)===true)fx.splice(i,1);continue}f.t+=dt;f.g.scale.setScalar(1+f.t*1.7);f.g.rotation.y+=dt*10;f.g.children[0].material.opacity=Math.max(0,1-f.t*3);if(f.t>.55){scene.remove(f.g);fx.splice(i,1)}}
 if(lyra.model){lyra.model.position.y=Math.sin(phase*1.6)*.025}if(player.shadow){player.shadow.position.x=player.x;player.shadow.position.z=player.z;}
 const a=player.actions,w=a&&(player.attack>0?a.idle:(player.walking?a.walk:a.idle));if(w&&!w.isRunning()){Object.values(a).filter(Boolean).forEach(x=>x.stop());w.reset().fadeIn(.12).play()}
-if(player.attack>0){player.attack=Math.max(0,player.attack-dt);player.attackT+=dt;const p=Math.min(1,player.attackT/.5);player.model.rotation.y+=Math.sin(p*Math.PI)*1.8}animateArticulation(player.model.userData.rig,phase,player.walking,player.attack,player.attackT);player.model.position.y+=(Math.sin(phase*19)*.012-player.model.position.y)*Math.min(1,player.walking?10:4);
+if(player.attack>0){player.attack=Math.max(0,player.attack-dt);player.attackT+=dt;const p=Math.min(1,player.attackT/.5);player.model.rotation.y+=Math.sin(p*Math.PI)*1.8}animateArticulation(player.model.userData.rig,phase,player.walking,player.attack,player.attackT,Math.hypot(player.vx,player.vz));player.model.position.y+=(Math.sin(phase*19)*.012-player.model.position.y)*Math.min(1,player.walking?10:4);
 for(const e of enemies){if(!e.model)continue;
 if(e.deathStarted){e.deathT+=dt;const p=Math.min(1,e.deathT/.7);e.model.position.y=p*.9;e.model.rotation.z=p*Math.PI*.65;e.model.scale.setScalar(1-p*.65);if(p>=1){scene.remove(e.model);e.model=null;continue}continue}
 if(e.hitT>0){e.hitT=Math.max(0,e.hitT-dt);e.model.position.z=e.z+(Math.sin(e.hitT*Math.PI*7)*.09);e.model.rotation.x=Math.sin(e.hitT*Math.PI*8)*.08}
-if(e.attackState===1){e.attackT+=dt;const p=Math.min(1,e.attackT/.52);const q=Math.sin(p*Math.PI);const lunge=e.kind==='Loup des Brumes'?.35:e.kind==='Araignée géante'?.12:e.kind==='Orc'?.08:0;e.model.position.y=Math.sin(p*Math.PI)*(.25+lunge);e.model.rotation.x=(e.kind==='Orc'?.38:e.kind==='Loup des Brumes'?.24:e.kind==='Spectre'?.08:-.18)*q;e.model.rotation.z=(e.kind==='Gobelin'?Math.sin(p*Math.PI)*.16:0);animateArticulation(e.rig,phase,false,true,e.attackT);if(p>=1){e.attackState=0;e.attackT=0;e.attackHit=false;e.model.position.y=0;e.model.rotation.x=0}}else{animateArticulation(e.rig,phase,false,false,0);e.model.position.y=Math.sin(phase*(e.kind==='Spectre'?2.1:3.2)+e.x)*(.025+(e.kind==='Spectre'?.08:0));if(e.kind==='Loup des Brumes')e.model.rotation.x=Math.sin(phase*4+e.x)*.025}}}
+if(e.attackState===1){e.attackT+=dt;const p=Math.min(1,e.attackT/.52);const q=Math.sin(p*Math.PI);const lunge=e.kind==='Loup des Brumes'?.35:e.kind==='Araignée géante'?.12:e.kind==='Orc'?.08:0;e.model.position.y=Math.sin(p*Math.PI)*(.25+lunge);e.model.rotation.x=(e.kind==='Orc'?.38:e.kind==='Loup des Brumes'?.24:e.kind==='Spectre'?.08:-.18)*q;e.model.rotation.z=(e.kind==='Gobelin'?Math.sin(p*Math.PI)*.16:0);animateArticulation(e.rig,phase,false,true,e.attackT,0);if(p>=1){e.attackState=0;e.attackT=0;e.attackHit=false;e.model.position.y=0;e.model.rotation.x=0}}else{animateArticulation(e.rig,phase,d<22&&d>1.8&&!e.attackState, false,0,e.speed);e.model.position.y=Math.sin(phase*(e.kind==='Spectre'?2.1:3.2)+e.x)*(.025+(e.kind==='Spectre'?.08:0));if(e.kind==='Loup des Brumes')e.model.rotation.x=Math.sin(phase*4+e.x)*.025}}}
 }
 async function startGame(e){if(e){e.preventDefault();e.stopPropagation()}if(started)return;started=true;try{if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{});if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch(_){}const intro=document.getElementById('intro');if(intro)intro.style.display='none';toast('🌅 Les Héritiers du Royaume Perdu commencent. Retrouve Lyra au village.');try{renderer.domElement.focus()}catch(_){} }
 window.__OTAKU_START__=startGame;
