@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "withered-cloud-ae25",
+  "name": "otakujeux-voldigod",
   "compatibility_date": "2026-09-26",
   "observability": {
     "enabled": true
