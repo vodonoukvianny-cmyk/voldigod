@@ -1,10 +1,10 @@
 (()=>{'use strict';
 const T=THREE,root=document.getElementById('game'),start=document.getElementById('start'),status=document.getElementById('loadStatus');
 const scene=new T.Scene();scene.background=new T.Color(0x081426);scene.fog=new T.FogExp2(0x71849b,.0065);
-const camera=new T.PerspectiveCamera(55,innerWidth/innerHeight,.1,300);
+const camera=new T.PerspectiveCamera(MOBILE?60:55,innerWidth/innerHeight,.1,340);
 const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});const MOBILE=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||innerWidth<900;renderer.setPixelRatio(MOBILE?Math.min(devicePixelRatio||1,1.15):Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!MOBILE;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;root.appendChild(renderer.domElement);
-scene.add(new T.HemisphereLight(0xa9cfff,0x26351f,2.1));
-const sun=new T.DirectionalLight(0xdce8ff,2.5);sun.position.set(-40,55,25);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+scene.add(new T.HemisphereLight(0xc7dcff,0x18261d,2.25));
+const sun=new T.DirectionalLight(0xfff0d1,2.75);sun.position.set(-40,55,25);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
 const M=(c,r=.8,m=0)=>new T.MeshStandardMaterial({color:c,roughness:r,metalness:m});
 const G=(c,o=.85)=>new T.MeshBasicMaterial({color:c,transparent:true,opacity:o,depthWrite:false});
 const mesh=(g,m)=>{const o=new T.Mesh(g,m);o.castShadow=true;o.receiveShadow=true;return o};
@@ -68,7 +68,7 @@ function fallbackHero(target,h,type){
  const mouth=box(.16,.025,.02,M(0x6b3440));mouth.position.set(0,2.08,.43);g.add(mouth);
  const cape=box(.82,1.18,.08,dark);cape.position.set(0,1.34,-.35);g.add(cape);
  const scabbard=cyl(.075,1.35,leatherMaterial(),7);scabbard.position.set(-.48,1.05,-.18);scabbard.rotation.z=-.35;g.add(scabbard);
- fit(g,h);target.model=g;target.ready=true;g.position.set(target.x||0,0,target.z||0);scene.add(g);weapon(target,type);heroMarker(target,'AREN',0x69a7ff);return g
+ fit(g,h);target.model=g;target.ready=true;g.position.set(target.x||0,0,target.z||0);scene.add(g);actorShadow(target,.72);weapon(target,type);heroMarker(target,'AREN',0x69a7ff);return g
 }
 function leatherMaterial(){return M(0x5a3825)}
 
@@ -137,6 +137,7 @@ else if(player.x===0&&player.z===18){player.z=28;S.saveX=0;S.saveZ=28;try{localS
 start.disabled=false;start.textContent='ENTRER DANS LE MONDE';status.textContent='✓ Monde prêt · personnages 3D en chargement en arrière-plan…';
 fallbackHero(player,3.25,'sword');
 loadHero(lyra,LYRA_URL,3.05,'staff').then(()=>{status.textContent='✓ Aren + Lyra chargés · monde prêt.'}).catch(e=>{console.warn('Lyra model:',e);status.textContent='✓ Monde jouable · modèle de Lyra indisponible pour le moment.'});
+function actorShadow(target,r=0.65){const sh=new T.Mesh(new T.CircleGeometry(r,16),M(0x10141a,.38));sh.rotation.x=-Math.PI/2;sh.position.set(target.x||0,.018,target.z||0);scene.add(sh);target.shadow=sh;return sh}
 function creatureFinish(g){g.traverse(o=>{if(o.isMesh){o.castShadow=!MOBILE;o.receiveShadow=!MOBILE}});return g}
 function eyePair(g,y,z,color=0xffe15a){for(const x of[-1,1]){const e=sph(.085,G(color));e.position.set(x*.18,y,z);g.add(e)}}
 function goblin(){const g=new T.Group(),skin=M(0x709b43),cloth=M(0x4b3a2a),leather=M(0x76502d),metal=M(0x9da7ad,.3,.5);
@@ -214,7 +215,7 @@ function slashEffect(){const g=new T.Group();const a=mesh(new T.TorusGeometry(1.
 const fx=[];
 function attack(){if(!started||dialog||attackCd>0)return;attackCd=.45;let best=null,bd=4;for(const e of enemies){const d=dist(player,e);if(d<bd){bd=d;best=e}}if(!best)return toast('Aucun ennemi à portée.');const critChance=.08+(S.crit||0)*.03;const critical=Math.random()<critChance;let power=1;if((S.awakening||0)>=1)power+=.12;if((S.awakening||0)>=2&&critical)power+=.25;if((S.awakening||0)>=3)power+=.12;const damage=Math.round((25+S.level*6+(S.weaponLevel||1)*4+(S.skills||0)*3)*power*(critical?1.8:1));best.hp-=damage;player.attack=.42;player.attackT=0;slashEffect();toast((critical?'💥 CRITIQUE — ':'⚔️ IMPACT — ')+best.kind+' -'+damage);if(best.hp<=0){scene.remove(best.model);best.dead=true;S.kills++;S.gold+=best.kind==='Gobelin'?16:11;S.rep+=best.kind==='Gobelin'?4:2;S.guild+=2;if((S.stage||0)>=4&&Math.random()<.55){S.relics=Math.min(7,(S.relics||0)+1);toast('👑 Un fragment ancien tombe de '+best.kind+' !')}gainxp(best.kind==='Loup des Brumes'?38:28);if(S.stage===2&&S.kills>=3){S.stage=3;toast('🏆 Mission accomplie ! Retourne voir Lyra.')}if(S.relics>=7&&S.stage>=5){S.stage=6;S.chapter=4;toast('👑 Les sept fragments sont réunis : le sceau peut être brisé !')}save()}}
 function skill(){S.skillPoints=S.skillPoints||0;if(S.skillPoints>0){S.skillPoints--;S.skills++;S.maxHp+=7;S.crit=Math.min(8,(S.crit||0)+1);toast('✨ Technique '+S.skills+' débloquée !');save();return}if(S.gold<35)return toast('Aucun point de technique. Il faut 35 pièces pour apprendre.');S.gold-=35;S.skills++;S.maxHp+=5;S.crit=Math.min(8,(S.crit||0)+1);toast('✨ Nouvelle technique apprise !');save()}
-function animate(dt){for(const m of mixers)m.update(dt);for(let i=fx.length-1;i>=0;i--){const f=fx[i];f.t+=dt;f.g.scale.setScalar(1+f.t*1.7);f.g.rotation.y+=dt*10;f.g.children[0].material.opacity=Math.max(0,1-f.t*3);if(f.t>.55){scene.remove(f.g);fx.splice(i,1)}}if(lyra.model)lyra.model.position.y=Math.sin(phase*1.6)*.025;const a=player.actions,w=a&&(player.attack>0?a.idle:(player.walking?a.walk:a.idle));if(w&&!w.isRunning()){Object.values(a).filter(Boolean).forEach(x=>x.stop());w.reset().fadeIn(.12).play()}if(player.attack>0){player.attack=Math.max(0,player.attack-dt);player.attackT+=dt;const p=Math.min(1,player.attackT/.42);player.model.rotation.y+=Math.sin(p*Math.PI)*1.8}}
+function animate(dt){for(const m of mixers)m.update(dt);for(let i=fx.length-1;i>=0;i--){const f=fx[i];f.t+=dt;f.g.scale.setScalar(1+f.t*1.7);f.g.rotation.y+=dt*10;f.g.children[0].material.opacity=Math.max(0,1-f.t*3);if(f.t>.55){scene.remove(f.g);fx.splice(i,1)}}if(lyra.model){lyra.model.position.y=Math.sin(phase*1.6)*.025}if(player.shadow){player.shadow.position.x=player.x;player.shadow.position.z=player.z;}const a=player.actions,w=a&&(player.attack>0?a.idle:(player.walking?a.walk:a.idle));if(w&&!w.isRunning()){Object.values(a).filter(Boolean).forEach(x=>x.stop());w.reset().fadeIn(.12).play()}if(player.attack>0){player.attack=Math.max(0,player.attack-dt);player.attackT+=dt;const p=Math.min(1,player.attackT/.42);player.model.rotation.y+=Math.sin(p*Math.PI)*1.8}}
 async function startGame(e){if(e){e.preventDefault();e.stopPropagation()}if(started)return;started=true;try{if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{});if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape').catch(()=>{});}catch(_){}const intro=document.getElementById('intro');if(intro)intro.style.display='none';toast('🌅 Les Héritiers du Royaume Perdu commencent. Retrouve Lyra au village.');try{renderer.domElement.focus()}catch(_){} }
 window.__OTAKU_START__=startGame;
 start.addEventListener('pointerdown',e=>{e.preventDefault();startGame(e)},{passive:false});
@@ -258,6 +259,6 @@ if(!blockedAt(ex,ez)){e.x=ex;e.z=ez;}
 e.model.position.set(e.x,0,e.z);e.model.rotation.y=Math.atan2(dx,dz)}if(d<1.7&&e.cd<=0){e.cd=1.1;const taken=Math.max(1,e.atk-Math.floor((S.armorLevel||1)*1.5));S.hp=Math.max(0,S.hp-taken);toast('💥 '+e.kind+' t’attaque ! -'+taken);if(S.hp===0){S.hp=S.maxHp*.55;player.x=S.saveX??0;player.z=S.saveZ??28;player.vx=0;player.vz=0;S.gold=Math.max(0,S.gold-20);toast('💀 Tu as été vaincu. Retour au village.')}save()}}
 attackCd=Math.max(0,attackCd-dt);if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)document.getElementById('message').style.display='none'}hud()}
 const night=(Math.sin(phase*.025)+1)/2;sun.intensity=1.15+night*1.4;scene.fog.density=.0058+night*.003;scene.background.setHSL(.60,.45,.07+.06*night);animate(dt);
-const camDist=MOBILE?7.8:10.5;const camTarget=new T.Vector3(player.x+camDist*.72,MOBILE?5.2:6.6,player.z+camDist);camera.position.lerp(camTarget,1-Math.pow(.001,dt));camera.lookAt(new T.Vector3(player.x,1.55,player.z));renderer.render(scene,camera);requestAnimationFrame(loop)}
+const camDist=MOBILE?8.6:10.8;const camSide=MOBILE?.55:.72;const camHeight=MOBILE?5.65:6.9;const camTarget=new T.Vector3(player.x+camDist*camSide,MOBILE?5.65:6.9,player.z+camDist);const camAlpha=1-Math.pow(.0008,dt);camera.position.lerp(camTarget,camAlpha);const look=new T.Vector3(player.x,1.35,player.z);camera.lookAt(look);renderer.render(scene,camera);requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 })();
