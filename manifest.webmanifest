@@ -1,0 +1,13 @@
+{
+  "name": "OTAKUJEUX — Renaissance",
+  "short_name": "OTAKUJEUX",
+  "description": "RPG fantasy 3D mobile d'aventure.",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#08111b",
+  "theme_color": "#8d6cff",
+  "icons": [
+    {"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
