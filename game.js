@@ -60,6 +60,34 @@ function heroMarker(target,name,color){
 heroMarker(player,'AREN',0x69a7ff);heroMarker(lyra,'LYRA',0xff6f9d);
 
 const mixers=[];
+
+// Collision statique : rectangles/cercle autour des bâtiments et meubles.
+const blockers=[];
+function addBlocker(x,z,w,d,pad=.45){blockers.push({x,z,w:w+pad*2,d:d+pad*2});}
+function blockedAt(x,z){
+  const r=.55;
+  for(const b of blockers){
+    if(x>b.x-b.w/2-r&&x<b.x+b.w/2+r&&z>b.z-b.d/2-r&&z<b.z+b.d/2+r)return true;
+  }
+  return false;
+}
+function movePlayer(nx,nz){
+  if(!blockedAt(nx,player.z))player.x=nx;else player.vx=0;
+  if(!blockedAt(player.x,nz))player.z=nz;else player.vz=0;
+}
+function buildCollisions(){
+  [[-10,-13,5.8,4.8],[10,-13,5.3,4.8],[-11,-25,4.6,4],[11,-24,4.8,4],[-20,-17,4,3.8],[20,-20,4.2,4]].forEach(v=>addBlocker(...v));
+  addBlocker(-17,-11,9,5);
+  addBlocker(0,-49,17.5,12.5);
+  addBlocker(-42,-55,10,3);
+  [[-45,25],[-39,25],[-45,29],[-39,29],[46,32],[52,32],[46,36],[52,36]].forEach(v=>addBlocker(v[0],v[1],1.8,1.8,.25));
+  addBlocker(4,19,7,6);
+  addBlocker(92,76,8,7);
+  addBlocker(90,75,2.8,4.2);
+  addBlocker(94,78,1.8,1.2);
+  addBlocker(94.7,74.1,2.1,.35);
+}
+buildCollisions();
 // Le monde ne doit jamais attendre le téléchargement des modèles 3D distants.
 // Les personnages se chargent en arrière-plan : le joueur peut entrer immédiatement.
 start.disabled=false;start.textContent='ENTRER DANS LE MONDE';status.textContent='✓ Monde prêt · personnages 3D en chargement en arrière-plan…';
@@ -94,7 +122,7 @@ function slashEffect(){const g=new T.Group();const a=mesh(new T.TorusGeometry(1.
 const fx=[];
 function attack(){if(!started||dialog||attackCd>0)return;attackCd=.45;let best=null,bd=4;for(const e of enemies){const d=dist(player,e);if(d<bd){bd=d;best=e}}if(!best)return toast('Aucun ennemi à portée.');const critChance=.08+(S.crit||0)*.03;const critical=Math.random()<critChance;const damage=Math.round((25+S.level*6+(S.weaponLevel||1)*4+(S.skills||0)*3)*(critical?1.8:1));best.hp-=damage;player.attack=.42;player.attackT=0;slashEffect();toast((critical?'💥 CRITIQUE — ':'⚔️ IMPACT — ')+best.kind+' -'+damage);if(best.hp<=0){scene.remove(best.model);best.dead=true;S.kills++;S.gold+=best.kind==='Gobelin'?16:11;S.rep+=best.kind==='Gobelin'?4:2;S.guild+=2;gainxp(best.kind==='Loup des Brumes'?38:28);if(S.stage===2&&S.kills>=3){S.stage=3;toast('🏆 Mission accomplie ! Retourne voir Lyra.')}save()}}
 function skill(){S.skillPoints=S.skillPoints||0;if(S.skillPoints>0){S.skillPoints--;S.skills++;S.maxHp+=7;S.crit=Math.min(8,(S.crit||0)+1);toast('✨ Technique '+S.skills+' débloquée !');save();return}if(S.gold<35)return toast('Aucun point de technique. Il faut 35 pièces pour apprendre.');S.gold-=35;S.skills++;S.maxHp+=5;S.crit=Math.min(8,(S.crit||0)+1);toast('✨ Nouvelle technique apprise !');save()}
-function animate(dt){for(const m of mixers)m.update(dt);for(let i=fx.length-1;i>=0;i--){const f=fx[i];f.t+=dt;f.g.scale.setScalar(1+f.t*1.7);f.g.rotation.y+=dt*10;f.g.children[0].material.opacity=Math.max(0,1-f.t*3);if(f.t>.55){scene.remove(f.g);fx.splice(i,1)}}if(lyra.model)lyra.model.position.y=Math.sin(phase*1.6)*.025;const a=player.actions,w=a&&(player.attack>0?a.idle:(player.walking?a.walk:a.idle));if(w&&!w.isRunning()){Object.values(a).filter(Boolean).forEach(x=>x.stop());w.reset().fadeIn(.12).play()}if(player.attack>0){player.attack=Math.max(0,player.attack-dt);player.attackT+=dt;const p=Math.min(1,player.attackT/.42);player.model.rotation.y+=Math.sin(p*Math.PI)*1.8;player.model.position.z+=Math.sin(p*Math.PI)*.5}}
+function animate(dt){for(const m of mixers)m.update(dt);for(let i=fx.length-1;i>=0;i--){const f=fx[i];f.t+=dt;f.g.scale.setScalar(1+f.t*1.7);f.g.rotation.y+=dt*10;f.g.children[0].material.opacity=Math.max(0,1-f.t*3);if(f.t>.55){scene.remove(f.g);fx.splice(i,1)}}if(lyra.model)lyra.model.position.y=Math.sin(phase*1.6)*.025;const a=player.actions,w=a&&(player.attack>0?a.idle:(player.walking?a.walk:a.idle));if(w&&!w.isRunning()){Object.values(a).filter(Boolean).forEach(x=>x.stop());w.reset().fadeIn(.12).play()}if(player.attack>0){player.attack=Math.max(0,player.attack-dt);player.attackT+=dt;const p=Math.min(1,player.attackT/.42);player.model.rotation.y+=Math.sin(p*Math.PI)*1.8}}
 function startGame(){started=true;document.getElementById('intro').style.display='none';toast('🌅 Renaissance commence. Retrouve Lyra au village.')}
 start.onclick=startGame;hud();
 const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key===' '){e.preventDefault();attack()}if(e.key.toLowerCase()==='e')interact();if(e.key.toLowerCase()==='p')potion();if(e.key.toLowerCase()==='k')skill()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
@@ -114,7 +142,7 @@ document.addEventListener('click',tryLandscape,{once:true});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(MOBILE?Math.min(devicePixelRatio||1,1.15):Math.min(devicePixelRatio||1,1.5))});
 let started=false,last=performance.now(),phase=0;
 function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;phase+=dt;
-if(started&&!dialog){lyra.model.position.set(lyra.x,0,lyra.z);lyra.model.rotation.y=Math.sin(phase*.5)*.18;let x=(keys.d?1:0)-(keys.a?1:0),z=(keys.s?1:0)-(keys.w?1:0);const joy=document.getElementById('joystick');if(joy&&joy.dataset.active==='1'){x=+(joy.dataset.x||0);z=+(joy.dataset.z||0)}const l=Math.hypot(x,z);if(l>0.04){x/=l;z/=l;const accel=22;player.vx+=(x*5.8-player.vx)*Math.min(1,accel*dt);player.vz+=(z*5.8-player.vz)*Math.min(1,accel*dt);player.x+=player.vx*dt;player.z+=player.vz*dt;player.model.rotation.y=Math.atan2(player.vx,player.vz);player.walking=true}else{player.vx*=Math.pow(.001,dt);player.vz*=Math.pow(.001,dt);if(Math.hypot(player.vx,player.vz)<.05){player.vx=0;player.vz=0}player.walking=Math.hypot(player.vx,player.vz)>.12;}
+if(started&&!dialog){lyra.model.position.set(lyra.x,0,lyra.z);lyra.model.rotation.y=Math.sin(phase*.5)*.18;let x=(keys.d?1:0)-(keys.a?1:0),z=(keys.s?1:0)-(keys.w?1:0);const joy=document.getElementById('joystick');if(joy&&joy.dataset.active==='1'){x=+(joy.dataset.x||0);z=+(joy.dataset.z||0)}const l=Math.hypot(x,z);if(l>0.04){x/=l;z/=l;const accel=22;player.vx+=(x*5.8-player.vx)*Math.min(1,accel*dt);player.vz+=(z*5.8-player.vz)*Math.min(1,accel*dt);const nx=player.x+player.vx*dt,nz=player.z+player.vz*dt;movePlayer(nx,nz);if(Math.hypot(player.vx,player.vz)>.05)player.model.rotation.y=Math.atan2(player.vx,player.vz)+Math.PI;player.walking=true}else{player.vx*=Math.pow(.001,dt);player.vz*=Math.pow(.001,dt);if(Math.hypot(player.vx,player.vz)<.05){player.vx=0;player.vz=0}player.walking=Math.hypot(player.vx,player.vz)>.12;}
 player.x=Math.max(-82,Math.min(82,player.x));player.z=Math.max(-82,Math.min(82,player.z));player.model.position.set(player.x,0,player.z);
 for(const e of enemies){if(e.dead)continue;e.cd-=dt;const dx=player.x-e.x,dz=player.z-e.z,d=Math.hypot(dx,dz);if(d<22&&d>.4){e.x+=dx/d*e.speed*dt;e.z+=dz/d*e.speed*dt;e.model.position.set(e.x,0,e.z);e.model.rotation.y=Math.atan2(dx,dz)}if(d<1.7&&e.cd<=0){e.cd=1.1;const taken=Math.max(1,e.atk-Math.floor((S.armorLevel||1)*1.5));S.hp=Math.max(0,S.hp-taken);toast('💥 '+e.kind+' t’attaque ! -'+taken);if(S.hp===0){S.hp=S.maxHp*.55;player.x=S.saveX??0;player.z=S.saveZ??18;player.vx=0;player.vz=0;S.gold=Math.max(0,S.gold-20);toast('💀 Tu as été vaincu. Retour au village.')}save()}}
 attackCd=Math.max(0,attackCd-dt);if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)document.getElementById('message').style.display='none'}hud()}
