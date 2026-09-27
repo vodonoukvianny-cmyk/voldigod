@@ -1,8 +1,8 @@
 (()=>{'use strict';
-const T=THREE,root=document.getElementById('game'),start=document.getElementById('start'),status=document.getElementById('loadStatus');
+const T=THREE,root=document.getElementById('game'),start=document.getElementById('start'),status=document.getElementById('loadStatus');const MOBILE=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||innerWidth<900;
 const scene=new T.Scene();scene.background=new T.Color(0x081426);scene.fog=new T.FogExp2(0x71849b,.0065);
 const camera=new T.PerspectiveCamera(MOBILE?60:55,innerWidth/innerHeight,.1,340);
-const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});const MOBILE=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||innerWidth<900;renderer.setPixelRatio(MOBILE?Math.min(devicePixelRatio||1,1.15):Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!MOBILE;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;root.appendChild(renderer.domElement);
+const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(MOBILE?Math.min(devicePixelRatio||1,1.15):Math.min(devicePixelRatio||1,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=!MOBILE;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;root.appendChild(renderer.domElement);
 scene.add(new T.HemisphereLight(0xc7dcff,0x18261d,2.25));
 const sun=new T.DirectionalLight(0xfff0d1,2.75);sun.position.set(-40,55,25);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
 const M=(c,r=.8,m=0)=>new T.MeshStandardMaterial({color:c,roughness:r,metalness:m});
