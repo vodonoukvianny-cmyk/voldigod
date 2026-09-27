@@ -139,10 +139,24 @@ function attack(){if(!started||dialog||attackCd>0)return;attackCd=.45;let best=n
 function skill(){S.skillPoints=S.skillPoints||0;if(S.skillPoints>0){S.skillPoints--;S.skills++;S.maxHp+=7;S.crit=Math.min(8,(S.crit||0)+1);toast('✨ Technique '+S.skills+' débloquée !');save();return}if(S.gold<35)return toast('Aucun point de technique. Il faut 35 pièces pour apprendre.');S.gold-=35;S.skills++;S.maxHp+=5;S.crit=Math.min(8,(S.crit||0)+1);toast('✨ Nouvelle technique apprise !');save()}
 function animate(dt){for(const m of mixers)m.update(dt);for(let i=fx.length-1;i>=0;i--){const f=fx[i];f.t+=dt;f.g.scale.setScalar(1+f.t*1.7);f.g.rotation.y+=dt*10;f.g.children[0].material.opacity=Math.max(0,1-f.t*3);if(f.t>.55){scene.remove(f.g);fx.splice(i,1)}}if(lyra.model)lyra.model.position.y=Math.sin(phase*1.6)*.025;const a=player.actions,w=a&&(player.attack>0?a.idle:(player.walking?a.walk:a.idle));if(w&&!w.isRunning()){Object.values(a).filter(Boolean).forEach(x=>x.stop());w.reset().fadeIn(.12).play()}if(player.attack>0){player.attack=Math.max(0,player.attack-dt);player.attackT+=dt;const p=Math.min(1,player.attackT/.42);player.model.rotation.y+=Math.sin(p*Math.PI)*1.8}}
 function startGame(e){if(e){e.preventDefault();e.stopPropagation()}started=true;const intro=document.getElementById('intro');if(intro)intro.style.display='none';toast('🌅 Renaissance commence. Retrouve Lyra au village.');try{renderer.domElement.focus()}catch(_){} }
-start.addEventListener('click',startGame);start.addEventListener('pointerup',e=>{if(e.pointerType!=='mouse')startGame(e)});hud();
+start.addEventListener('pointerdown',e=>{e.preventDefault();startGame(e)},{passive:false});
+start.addEventListener('click',e=>{e.preventDefault();startGame(e)});
+hud();
 const keys={};
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();keys[k]=true;if(e.key===' '){e.preventDefault();attack()}else if(k==='e')interact();else if(k==='p')potion();else if(k==='k')skill()});
-window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
+const keyMap={ArrowUp:'w',ArrowDown:'s',ArrowLeft:'a',ArrowRight:'d',z:'w',q:'a',w:'w',s:'s',a:'a',d:'d'};
+window.addEventListener('keydown',e=>{
+ const raw=e.key, k=raw.length===1?raw.toLowerCase():raw;
+ const mapped=keyMap[k];
+ if(mapped){keys[mapped]=true;e.preventDefault()}
+ if(raw===' '){e.preventDefault();attack()}
+ else if(k==='e'){e.preventDefault();interact()}
+ else if(k==='p'){e.preventDefault();potion()}
+ else if(k==='k'){e.preventDefault();skill()}
+});
+window.addEventListener('keyup',e=>{
+ const raw=e.key, k=raw.length===1?raw.toLowerCase():raw, mapped=keyMap[k];
+ if(mapped){keys[mapped]=false;e.preventDefault()}
+});
 document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.onpointerdown=e=>{e.preventDefault();keys[k]=true};b.onpointerup=b.onpointercancel=b.onpointerleave=()=>keys[k]=false});document.querySelectorAll('[data-act]').forEach(b=>{let skipClick=false;const run=()=>{const fn={attack,potion,interact,skill}[b.dataset.act];if(fn)fn()};b.addEventListener('pointerup',e=>{if(e.pointerType==='mouse')return;e.preventDefault();skipClick=true;run();setTimeout(()=>skipClick=false,350)});b.addEventListener('click',e=>{e.preventDefault();if(skipClick)return;run()})});
 
 // Mobile virtual joystick: continuous 360° movement, no button mashing required.
