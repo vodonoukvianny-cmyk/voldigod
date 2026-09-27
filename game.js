@@ -68,7 +68,7 @@ function fallbackHero(target,h,type){
  const mouth=box(.16,.025,.02,M(0x6b3440));mouth.position.set(0,2.08,.43);g.add(mouth);
  const cape=box(.82,1.18,.08,dark);cape.position.set(0,1.34,-.35);g.add(cape);
  const scabbard=cyl(.075,1.35,leatherMaterial(),7);scabbard.position.set(-.48,1.05,-.18);scabbard.rotation.z=-.35;g.add(scabbard);
- fit(g,h);target.model=g;target.ready=true;g.position.set(target.x||0,0,target.z||0);scene.add(g);actorShadow(target,.72);weapon(target,type);heroMarker(target,'AREN',0x69a7ff);return g
+ fit(g,h);target.model=g;target.ready=true;g.position.set(target.x||0,0,target.z||0);scene.add(g);actorShadow(target,.72);weapon(target,type);target.model.userData.weapon=target.weapon||null;target.model.userData.rig=buildArticulation(target.model,'hero');heroMarker(target,'AREN',0x69a7ff);return g
 }
 function leatherMaterial(){return M(0x5a3825)}
 
