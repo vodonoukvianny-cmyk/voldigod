@@ -15,7 +15,7 @@ const grass=box(175,.12,175,M(0x3d5c36));grass.position.y=.04;scene.add(grass);
 const water=box(13,.22,175,M(0x1c6280,.28));water.position.set(35,.08,0);scene.add(water);
 function road(x,z,w,d,r=0){const q=box(w,.07,d,M(0x9d7a58));q.position.set(x,.13,z);q.rotation.y=r;scene.add(q)}
 road(0,10,7,130);road(-18,-16,5,55,Math.PI/2);road(18,-18,5,45,Math.PI/2);road(0,-42,5,40);
-function tree(x,z,s=1,dead=false){const g=new T.Group();envObstacles.push({x,z,r:.7*s});tr=cyl(.38,2.5,M(dead?0x3b3027:0x503322),12);tr.position.y=1.25;g.add(tr);if(dead){const br=cyl(.12,2,M(0x392a24),8);br.rotation.z=.65;br.position.set(.35,2.2,0);g.add(br)}else{for(const [y,r,c] of [[3.1,2.1,0x28583a],[4.55,1.65,0x347044],[5.55,1.05,0x418653]]){const a=cone(r,2.7,M(c),8);a.position.y=y;g.add(a)}}g.position.set(x,0,z);g.scale.setScalar(s);scene.add(g)}
+function tree(x,z,s=1,dead=false){const g=new T.Group();envObstacles.push({x,z,r:.7*s});const tr=cyl(.38,2.5,M(dead?0x3b3027:0x503322),12);tr.position.y=1.25;g.add(tr);if(dead){const br=cyl(.12,2,M(0x392a24),8);br.rotation.z=.65;br.position.set(.35,2.2,0);g.add(br)}else{for(const [y,r,c] of [[3.1,2.1,0x28583a],[4.55,1.65,0x347044],[5.55,1.05,0x418653]]){const a=cone(r,2.7,M(c),8);a.position.y=y;g.add(a)}}g.position.set(x,0,z);g.scale.setScalar(s);scene.add(g)}
 for(let i=0;i<(MOBILE?30:55);i++){let x=rand(-78,78),z=rand(-78,78);if(Math.abs(x)<25&&Math.abs(z)<30)continue;tree(x,z,rand(.65,1.35),z<-48)}
 function rock(x,z,s=1){envObstacles.push({x,z,r:1.35*s});const r=mesh(new T.DodecahedronGeometry(rand(.7,1.3)*s,1),M(0x66717a));r.position.set(x,rand(.2,.7),z);r.scale.y=.65;scene.add(r)}
 for(let i=0;i<(MOBILE?22:42);i++)rock(rand(-80,80),rand(-80,80),rand(.6,1.5));
