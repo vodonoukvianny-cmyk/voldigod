@@ -45,7 +45,24 @@ const player={x:Number.isFinite(+S.saveX)?+S.saveX:0,z:Number.isFinite(+S.saveZ)
 scene.add(player.model,lyra.model);
 function fit(obj,h){obj.visible=true;obj.updateMatrixWorld(true);const b=new T.Box3().setFromObject(obj),sz=b.getSize(new T.Vector3());if(sz.y)obj.scale.multiplyScalar(h/sz.y);obj.updateMatrixWorld(true);const b2=new T.Box3().setFromObject(obj);obj.position.y-=b2.min.y;obj.updateMatrixWorld(true);obj.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true;n.frustumCulled=false}})}
 function weapon(target,type){let hand=null;target.model.traverse(n=>{if(!hand&&/right.?hand|hand_r|mixamorigRightHand/i.test(n.name))hand=n});const g=new T.Group();if(type==='sword'){const blade=box(.13,1.65,.07,M(0xe6efff,.22,.8));blade.position.y=.82;g.add(blade);const guard=box(.58,.09,.13,M(0xd9b14d,.3,.7));guard.position.y=.1;g.add(guard)}else{const staff=cyl(.06,1.9,M(0x68452b),10);staff.position.y=.95;g.add(staff);const orb=sph(.18,G(0x64dcff));orb.position.y=1.98;g.add(orb)}if(hand)hand.add(g);else{g.position.set(0,1,0);target.model.add(g)}}
-function fallbackHero(target,h,type){const g=new T.Group(),skin=M(type==='sword'?0xc48a6a:0xe0a08f),cloth=M(type==='sword'?0x263b72:0x6f315b),hair=M(type==='sword'?0x241d25:0x3a1f2b);const body=cyl(.42,1.25,skin,12);body.position.y=1.35;g.add(body);const head=sph(.48,skin);head.position.y=2.25;g.add(head);const haircap=sph(.5,hair);haircap.scale.y=.55;haircap.position.y=2.58;g.add(haircap);const tunic=box(.82,1.05,.62,cloth);tunic.position.y=1.25;g.add(tunic);for(const x of[-.23,.23]){const arm=cyl(.11,.85,skin,8);arm.position.set(x*2,1.35,0);g.add(arm);const leg=cyl(.13,.9,cloth,8);leg.position.set(x,0.45,0);g.add(leg)}fit(g,h);target.model=g;target.ready=true;g.position.set(target.x||0,0,target.z||0);scene.add(g);weapon(target,type);heroMarker(target,type==='sword'?'AREN':'LYRA',type==='sword'?0x69a7ff:0xff6f9d);return g}
+function fallbackHero(target,h,type){
+ const g=new T.Group();
+ const skin=M(0xd6a07f),hair=M(0x171923),cloth=M(0x24425f),cloth2=M(0x3e7180),metal=M(0xc8d1dc,.35,.7),gold=M(0xd7ae52,.25,.7),boot=M(0x292d36),eye=G(0x77d9ff);
+ const legs=[];
+ for(const x of[-.22,.22]){const leg=box(.25,.92,.3,boot);leg.position.set(x,.52,0);g.add(leg);legs.push(leg)}
+ const torso=box(.9,1.05,.58,cloth);torso.position.y=1.25;g.add(torso);
+ const chest=box(.72,.55,.62,metal);chest.position.set(0,1.42,.02);g.add(chest);
+ const sash=box(.16,1.02,.67,cloth2);sash.position.set(.23,1.27,.34);sash.rotation.z=-.12;g.add(sash);
+ const belt=box(.96,.14,.64,gold);belt.position.y=.83;g.add(belt);
+ for(const x of[-.55,.55]){const arm=cyl(.13,.88,skin,8);arm.position.set(x,1.28,0);arm.rotation.z=x<0?.18:-.18;g.add(arm);const pa=box(.28,.7,.36,metal);pa.position.set(x,1.43,0);pa.rotation.z=x<0?.18:-.18;g.add(pa)}
+ const head=sph(.46,skin);head.position.y=2.28;g.add(head);
+ const haircap=sph(.5,hair);haircap.scale.set(1.05,.75,1.02);haircap.position.set(0,2.57,-.02);g.add(haircap);
+ for(const x of[-.16,.16]){const eyeM=sph(.055,eye);eyeM.position.set(x,2.3,.42);g.add(eyeM)}
+ const fringe=cone(.24,.55,hair,5);fringe.rotation.x=Math.PI;fringe.position.set(0,2.55,.4);g.add(fringe);
+ const collar=cone(.28,.34,cloth2,6);collar.position.y=1.82;g.add(collar);
+ const cape=box(.78,1.15,.08,M(0x17283f,.15));cape.position.set(0,1.32,-.34);g.add(cape);
+ fit(g,h);target.model=g;target.ready=true;g.position.set(target.x||0,0,target.z||0);scene.add(g);weapon(target,type);heroMarker(target,'AREN',0x69a7ff);return g
+}
 function loadHero(target,url,h,type){return new Promise((resolve,reject)=>{const l=new T.GLTFLoader();let done=false;const ok=g=>{if(done)return;done=true;const m=g.scene;fit(m,h);target.model=m;target.ready=true;m.visible=true;m.position.set(target.x||0,0,target.z||0);scene.add(m);const idle=g.animations.find(a=>/idle|stand|breath/i.test(a.name))||g.animations[0],walk=g.animations.find(a=>/walk|run|locomotion|samba/i.test(a.name))||idle;const mixer=new T.AnimationMixer(m);target.mixer=mixer;target.actions={idle:idle?mixer.clipAction(idle):null,walk:walk?mixer.clipAction(walk):null};if(target.actions.idle)target.actions.idle.play();mixers.push(mixer);weapon(target,type);heroMarker(target,type==='sword'?'AREN':'LYRA',type==='sword'?0x69a7ff:0xff6f9d);resolve()};l.load(url,ok,undefined,e=>{if(!done){done=true;fallbackHero(target,h,type);resolve()}})})}
 const AREN_URL='https://threejs.org/examples/models/gltf/Soldier.glb',LYRA_URL='https://threejs.org/examples/models/gltf/Michelle.glb';
 
@@ -109,44 +126,52 @@ else if(player.x===0&&player.z===18){player.z=28;S.saveX=0;S.saveZ=28;try{localS
 // Le monde ne doit jamais attendre le téléchargement des modèles 3D distants.
 // Les personnages se chargent en arrière-plan : le joueur peut entrer immédiatement.
 start.disabled=false;start.textContent='ENTRER DANS LE MONDE';status.textContent='✓ Monde prêt · personnages 3D en chargement en arrière-plan…';
-loadHero(player,AREN_URL,3.25,'sword').then(()=>{status.textContent='✓ Aren chargé · Lyra continue en arrière-plan.'}).catch(e=>{console.warn('Aren model:',e);status.textContent='✓ Monde jouable · modèle d’Aren indisponible pour le moment.'});
+fallbackHero(player,3.25,'sword');
 loadHero(lyra,LYRA_URL,3.05,'staff').then(()=>{status.textContent='✓ Aren + Lyra chargés · monde prêt.'}).catch(e=>{console.warn('Lyra model:',e);status.textContent='✓ Monde jouable · modèle de Lyra indisponible pour le moment.'});
 function creatureFinish(g){g.traverse(o=>{if(o.isMesh){o.castShadow=!MOBILE;o.receiveShadow=!MOBILE}});return g}
 function eyePair(g,y,z,color=0xffe15a){for(const x of[-1,1]){const e=sph(.085,G(color));e.position.set(x*.18,y,z);g.add(e)}}
-function goblin(){const g=new T.Group(),skin=M(0x648b42),dark=M(0x293029),leather=M(0x68452f),metal=M(0xb9c4cc,.3,.5);
- const torso=box(.78,1.0,.56,dark);torso.position.y=1.05;g.add(torso);
- for(const x of[-.24,.24]){const leg=cyl(.13,.8,leather,8);leg.position.set(x,.42,0);g.add(leg)}
- const head=sph(.58,skin);head.scale.set(1.02,1.08,.9);head.position.y=2.0;g.add(head);
- const earL=cone(.34,.9,skin,5);earL.rotation.z=-1.25;earL.position.set(-.58,2.15,0);g.add(earL);
- const earR=cone(.34,.9,skin,5);earR.rotation.z=1.25;earR.position.set(.58,2.15,0);g.add(earR);
- const nose=cone(.2,.42,skin,7);nose.rotation.x=Math.PI/2;nose.position.set(0,1.9,.52);g.add(nose);eyePair(g,2.08,.49);
- for(const x of[-1,1]){const arm=cyl(.13,.82,leather,8);arm.rotation.z=x<0?-.45:.45;arm.position.set(x*.57,1.15,0);g.add(arm)}
- const blade=box(.08,1.25,.1,metal);blade.position.set(.86,1.18,.08);blade.rotation.z=-.55;g.add(blade);
- const shield=box(.52,.68,.12,leather);shield.position.set(-.82,1.12,.16);g.add(shield);
- const belt=box(.86,.13,.6,M(0x9a6a38));belt.position.y=.78;g.add(belt);return creatureFinish(g)}
-function slime(){const g=new T.Group(),body=sph(.82,M(0x704bc2,.32));body.scale.set(1.05,.72,.92);body.position.y=.62;g.add(body);const cap=sph(.52,M(0x9a73e8,.25));cap.scale.set(1.05,.5,.9);cap.position.set(0,.95,0);g.add(cap);eyePair(g,.67,.67,0xffffff);for(const x of[-.18,.18]){const p=sph(.045,G(0x18131f));p.position.set(x,.67,.74);g.add(p)}const mouth=mesh(new T.TorusGeometry(.16,.035,6,12,Math.PI),G(0x22152b));mouth.position.set(0,.52,.73);mouth.rotation.x=Math.PI/2;g.add(mouth);return creatureFinish(g)}
-function wolf(){const g=new T.Group(),fur=M(0x68727d),dark=M(0x3f4852),nose=M(0x252a31);
- const torso=sph(.78,fur);torso.scale.set(1.35,.72,1.05);torso.position.y=1.0;g.add(torso);
- const chest=sph(.52,fur);chest.scale.set(.85,1.05,.75);chest.position.set(0,1.18,.62);g.add(chest);
- const neck=cyl(.36,.65,fur,10);neck.position.set(0,1.45,.48);neck.rotation.x=-.35;g.add(neck);
- const head=sph(.48,fur);head.scale.set(.95,.9,1.05);head.position.set(0,1.82,.92);g.add(head);
- const muzzle=sph(.25,fur);muzzle.scale.set(.8,.7,1.2);muzzle.position.set(0,1.7,1.28);g.add(muzzle);
- const sn=sph(.09,nose);sn.position.set(0,1.68,1.52);g.add(sn);eyePair(g,1.92,1.32,0xffd65a);
- for(const x of[-1,1]){const ear=cone(.24,.62,fur,4);ear.position.set(x*.3,2.2,.82);ear.rotation.z=x*.18;g.add(ear)}
- for(const x of[-.48,.48])for(const z of[-.38,.38]){const leg=cyl(.12,.78,dark,8);leg.position.set(x,.43,z);g.add(leg);const paw=sph(.16,dark);paw.scale.set(1,.55,1.3);paw.position.set(x,.08,z+.05);g.add(paw)}
- const tail=cyl(.13,.9,fur,8);tail.position.set(0,1.2,-.88);tail.rotation.x=-.9;tail.rotation.z=.35;g.add(tail);const tip=cone(.2,.45,dark,6);tip.position.set(0,1.62,-1.15);tip.rotation.x=-.35;g.add(tip);
+function goblin(){const g=new T.Group(),skin=M(0x709b43),cloth=M(0x4b3a2a),leather=M(0x76502d),metal=M(0x9da7ad,.3,.5);
+ const body=box(.7,1.05,.52,cloth);body.position.y=1.0;g.add(body);
+ const head=sph(.55,skin);head.scale.set(1.05,1.1,.92);head.position.y=1.92;g.add(head);
+ for(const x of[-1,1]){const ear=cone(.3,.72,skin,5);ear.rotation.z=x*.95;ear.position.set(x*.55,2.08,0);g.add(ear)}
+ eyePair(g,1.98,.49,0xffe36e);
+ const nose=cone(.18,.34,skin,6);nose.rotation.x=Math.PI/2;nose.position.set(0,1.83,.49);g.add(nose);
+ for(const x of[-1,1]){const arm=cyl(.12,.78,skin,7);arm.position.set(x*.52,1.15,.02);arm.rotation.z=x*.45;g.add(arm);const hand=sph(.13,skin);hand.position.set(x*.74,.85,.05);g.add(hand)}
+ for(const x of[-.22,.22]){const leg=cyl(.14,.72,leather,7);leg.position.set(x,.38,0);g.add(leg)}
+ const rag=box(.86,.18,.58,leather);rag.position.y=.73;g.add(rag);
+ const bow=mesh(new T.TorusGeometry(.42,.045,6,14,Math.PI),M(0x8b5a32));bow.position.set(.78,1.25,.1);bow.rotation.z=-.45;g.add(bow);
  return creatureFinish(g)}
-function wraith(){const g=new T.Group(),body=G(0x6d9dff,.48),core=sph(.7,body);core.position.y=1.25;core.scale.set(1,.95,.75);g.add(core);const hood=cone(.7,.9,G(0x354f91,.75),8);hood.position.y=1.85;g.add(hood);eyePair(g,1.45,.58,0xffffff);for(const x of[-.5,.5]){const arm=cyl(.1,1.0,G(0x78b8ff,.38),7);arm.position.set(x,1.05,.05);arm.rotation.z=x<0?-.8:.8;g.add(arm)}const aura=mesh(new T.TorusGeometry(.7,.06,6,18),G(0x79b9ff,.35));aura.rotation.x=Math.PI/2;aura.position.y=.25;g.add(aura);return creatureFinish(g)}
-function orc(){const g=new T.Group(),skin=M(0x4f6f3a),armor=M(0x3b4147),leather=M(0x69452f);
- const body=cyl(.62,1.45,skin,10);body.position.y=1.15;body.scale.x=1.12;g.add(body);
- const head=sph(.68,skin);head.position.y=2.35;head.scale.set(1.05,1,.9);g.add(head);
- for(const x of[-1,1]){const ear=cone(.3,.55,skin,5);ear.position.set(x*.68,2.4,0);ear.rotation.z=x*.5;g.add(ear)}
- const brow=box(.8,.18,.18,armor);brow.position.set(0,2.55,.54);g.add(brow);eyePair(g,2.38,.56,0xffb52e);
- const tusk1=cone(.1,.34,M(0xe9dfc4),6);tusk1.position.set(-.18,2.08,.62);tusk1.rotation.x=Math.PI;g.add(tusk1);const tusk2=tusk1.clone();tusk2.position.x=.18;g.add(tusk2);
- for(const x of[-.3,.3]){const leg=cyl(.17,.9,armor,8);leg.position.set(x,.48,0);g.add(leg)}
- for(const x of[-1,1]){const arm=cyl(.17,1.0,leather,8);arm.position.set(x*.68,1.35,0);arm.rotation.z=x*.3;g.add(arm)}
- const axe=box(.1,1.5,.12, M(0xb7c0c7,.25,.5));axe.position.set(.95,1.2,.1);axe.rotation.z=-.55;g.add(axe);const axeb=box(.65,.35,.12,armor);axeb.position.set(.95,1.82,.1);g.add(axeb);return creatureFinish(g)}
-const kinds=[['Gobelin',goblin,65,12,1.8],['Slime',slime,45,9,1.3],['Loup des Brumes',wolf,80,15,2.2],['Spectre',wraith,105,18,1.4],['Orc',orc,135,20,1.55]];
+function giantSpider(){const g=new T.Group(),bodyM=M(0x272a32),abd=M(0x4a3b42),legM=M(0x1a1c22),eyeM=G(0xff4f62);
+ const abdomen=sph(.72,abd);abdomen.scale.set(1.15,.82,1.38);abdomen.position.set(0,.92,-.18);g.add(abdomen);
+ const thorax=sph(.55,bodyM);thorax.scale.set(1.18,.82,1.05);thorax.position.set(0,.92,.72);g.add(thorax);
+ const head=sph(.38,bodyM);head.position.set(0,.98,1.2);g.add(head);eyePair(g,1.12,1.5,0xff5566);
+ for(const x of[-1,1])for(let i=0;i<4;i++){const leg=cyl(.075,1.35,legM,6);const sx=x*(.42+i*.06), sz=.72-i*.48;leg.position.set(sx,.78,sz);leg.rotation.z=x*(.65+i*.12);leg.rotation.x=(i-1.5)*.12;g.add(leg);const foot=cyl(.055,.62,legM,6);foot.position.set(x*(.95+i*.1),.46,sz+(i%2?.18:-.12));foot.rotation.z=x*1.05;g.add(foot)}
+ return creatureFinish(g)}
+function slime(){const g=new T.Group(),body=sph(.82,M(0x6d9bcb,.25));body.scale.set(1.08,.7,.95);body.position.y=.62;g.add(body);eyePair(g,.68,.68,0xfff1a8);return creatureFinish(g)}
+function wolf(){const g=new T.Group(),fur=M(0x7c7d7d),dark=M(0x34383b),nose=M(0x18191b);
+ const torso=sph(.82,fur);torso.scale.set(1.45,.72,1.0);torso.position.y=.95;g.add(torso);
+ const chest=sph(.48,fur);chest.scale.set(.85,1.05,.8);chest.position.set(0,1.12,.65);g.add(chest);
+ const head=sph(.48,fur);head.position.set(0,1.72,1.0);g.add(head);
+ const muzzle=sph(.25,fur);muzzle.scale.set(.8,.7,1.25);muzzle.position.set(0,1.6,1.35);g.add(muzzle);
+ const sn=sph(.085,nose);sn.position.set(0,1.59,1.58);g.add(sn);eyePair(g,1.84,1.36,0xffd55c);
+ for(const x of[-1,1]){const ear=cone(.23,.58,fur,5);ear.position.set(x*.3,2.08,.93);ear.rotation.z=x*.18;g.add(ear)}
+ for(const x of[-.5,.5])for(const z of[-.38,.35]){const leg=cyl(.12,.72,dark,7);leg.position.set(x,.4,z);g.add(leg);const paw=sph(.14,dark);paw.position.set(x,.08,z+.08);g.add(paw)}
+ const tail=cyl(.12,1.0,fur,7);tail.position.set(0,1.12,-.9);tail.rotation.x=-.95;tail.rotation.z=.25;g.add(tail);
+ return creatureFinish(g)}
+function wraith(){const g=new T.Group(),body=G(0x6d9dff,.48),core=sph(.7,body);core.position.y=1.25;core.scale.set(1,.95,.75);g.add(core);const hood=cone(.7,.9,G(0x354f91,.75),8);hood.position.y=1.85;g.add(hood);eyePair(g,1.45,.58,0xffffff);for(const x of[-.5,.5]){const arm=cyl(.1,1.0,G(0x78b8ff,.38),7);arm.position.set(x,1.05,.05);arm.rotation.z=x<0?-.8:.8;g.add(arm)}return creatureFinish(g)}
+function orc(){const g=new T.Group(),skin=M(0x617640),armor=M(0x453c35),leather=M(0x6d472c),fur=M(0x302d2b),metal=M(0xb7bec5,.3,.6);
+ const belly=sph(.72,skin);belly.scale.set(1.25,1.12,.82);belly.position.y=1.12;g.add(belly);
+ const chest=box(1.28,.72,.72,armor);chest.position.set(0,1.5,.05);g.add(chest);
+ const head=sph(.68,skin);head.scale.set(1.08,1,.92);head.position.y=2.35;g.add(head);
+ for(const x of[-1,1]){const ear=cone(.3,.6,skin,5);ear.position.set(x*.7,2.42,0);ear.rotation.z=x*.5;g.add(ear)}
+ eyePair(g,2.4,.57,0xffc34d);
+ for(const x of[-1,1]){const tusk=cone(.11,.4,M(0xe8dec7),6);tusk.position.set(x*.18,2.05,.6);tusk.rotation.x=Math.PI;g.add(tusk)}
+ for(const x of[-.34,.34]){const leg=cyl(.2,.85,armor,8);leg.position.set(x,.48,0);g.add(leg)}
+ for(const x of[-1,1]){const arm=cyl(.2,1.0,skin,8);arm.position.set(x*.75,1.35,0);arm.rotation.z=x*.3;g.add(arm);const br=box(.42,.28,.52,leather);br.position.set(x*.7,1.25,.08);g.add(br)}
+ const shoulder=box(1.5,.2,.8,fur);shoulder.position.y=1.9;g.add(shoulder);
+ const axe=box(.11,1.55,.13,metal);axe.position.set(.98,1.25,.1);axe.rotation.z=-.55;g.add(axe);const blade=box(.7,.42,.14,metal);blade.position.set(1.0,1.86,.1);g.add(blade);
+ return creatureFinish(g)}
+const kinds=[['Gobelin',goblin,65,12,1.8],['Araignée géante',giantSpider,95,17,1.7],['Loup des Brumes',wolf,80,15,2.2],['Spectre',wraith,105,18,1.4],['Orc',orc,145,22,1.55]];
 const enemies=[];
 function spawn(kind,x,z){const k=kinds[kind],e={kind:k[0],model:k[1](),x,z,radius:k[4]*.28,hp:k[2]+S.level*7,max:k[2]+S.level*7,atk:k[3],speed:k[4],cd:rand(0,.8),dead:false};e.model.position.set(x,0,z);scene.add(e.model);enemies.push(e);return e}
 for(let i=0;i<5;i++)spawn(0,rand(-48,-27),rand(-40,5));
@@ -205,7 +230,7 @@ if(joystick&&stick){
  joystick.addEventListener('pointermove',move);joystick.addEventListener('pointerup',end);joystick.addEventListener('pointercancel',end);
 }
 function tryLandscape(){try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{});}catch(e){}}
-document.addEventListener('click',tryLandscape,{once:true});
+document.addEventListener('pointerdown',tryLandscape,{once:true});document.addEventListener('click',tryLandscape,{once:true});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(MOBILE?Math.min(devicePixelRatio||1,1.15):Math.min(devicePixelRatio||1,1.5))});
 let started=false,last=performance.now(),phase=0;
 function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;phase+=dt;
