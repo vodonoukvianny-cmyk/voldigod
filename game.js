@@ -40,8 +40,8 @@ dungeon();
 for(const p of [[-5,-11],[5,-11],[-18,-11],[18,-11],[-42,-27],[42,37]]){const f=cyl(.22,1,M(0x4a3020));f.position.set(p[0],.5,p[1]);scene.add(f);const fl=cone(.48,1.25,G(0xff9a28));fl.position.set(p[0],1.35,p[1]);scene.add(fl)}
 const md=sph(5,M(0xeaf4ff,.45));md.position.set(-48,52,-75);scene.add(md);
 for(let i=0;i<(MOBILE?45:100);i++){const s=sph(.025,M(0xf0f6ff,.4));s.position.set(rand(-95,95),rand(25,85),rand(-105,-30));scene.add(s)}
-let saved={};try{saved=JSON.parse(localStorage.getItem('otaku3d')||'{}')||{}}catch(e){saved={}};const S=Object.assign({saveVersion:3,level:1,xp:0,hp:120,maxHp:120,gold:40,rep:0,guild:0,bond:20,potions:3,kills:0,stage:0,skills:0,skillPoints:0,weaponLevel:1,armorLevel:1,crit:0,loot:0,day:0,saveX:0,saveZ:18},saved);
-const player={x:0,z:18,model:new T.Group(),ready:false,mixer:null,actions:{},attack:0,attackT:0,walking:false,vx:0,vz:0};const lyra={x:-3,z:4,model:new T.Group(),ready:false,mixer:null,actions:{}};player.model.visible=true;lyra.model.visible=true;
+let saved={};try{saved=JSON.parse(localStorage.getItem('otaku3d')||'{}')||{}}catch(e){saved={}};const S=Object.assign({saveVersion:3,level:1,xp:0,hp:120,maxHp:120,gold:40,rep:0,guild:0,bond:20,potions:3,kills:0,stage:0,skills:0,skillPoints:0,weaponLevel:1,armorLevel:1,crit:0,loot:0,day:0,saveX:0,saveZ:28},saved);
+const player={x:Number.isFinite(+S.saveX)?+S.saveX:0,z:Number.isFinite(+S.saveZ)?+S.saveZ:28,model:new T.Group(),ready:false,mixer:null,actions:{},attack:0,attackT:0,walking:false,vx:0,vz:0};const lyra={x:-3,z:4,model:new T.Group(),ready:false,mixer:null,actions:{}};player.model.visible=true;lyra.model.visible=true;
 scene.add(player.model,lyra.model);
 function fit(obj,h){obj.visible=true;obj.updateMatrixWorld(true);const b=new T.Box3().setFromObject(obj),sz=b.getSize(new T.Vector3());if(sz.y)obj.scale.multiplyScalar(h/sz.y);obj.updateMatrixWorld(true);const b2=new T.Box3().setFromObject(obj);obj.position.y-=b2.min.y;obj.updateMatrixWorld(true);obj.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true;n.frustumCulled=false}})}
 function weapon(target,type){let hand=null;target.model.traverse(n=>{if(!hand&&/right.?hand|hand_r|mixamorigRightHand/i.test(n.name))hand=n});const g=new T.Group();if(type==='sword'){const blade=box(.13,1.65,.07,M(0xe6efff,.22,.8));blade.position.y=.82;g.add(blade);const guard=box(.58,.09,.13,M(0xd9b14d,.3,.7));guard.position.y=.1;g.add(guard)}else{const staff=cyl(.06,1.9,M(0x68452b),10);staff.position.y=.95;g.add(staff);const orb=sph(.18,G(0x64dcff));orb.position.y=1.98;g.add(orb)}if(hand)hand.add(g);else{g.position.set(0,1,0);target.model.add(g)}}
@@ -103,6 +103,9 @@ function buildCollisions(){
 }
 buildCollisions();
 for(const o of envObstacles)addBlocker(o.x,o.z,o.r*2.1,o.r*2.1,.05);
+// Sécurité de spawn : ne jamais placer Aren à l'intérieur d'un bâtiment/objet.
+if(blockedAt(player.x,player.z)){player.x=0;player.z=28;S.saveX=0;S.saveZ=28;try{localStorage.setItem('otaku3d',JSON.stringify(S))}catch(e){}}
+else if(player.x===0&&player.z===18){player.z=28;S.saveX=0;S.saveZ=28;try{localStorage.setItem('otaku3d',JSON.stringify(S))}catch(e){}}
 // Le monde ne doit jamais attendre le téléchargement des modèles 3D distants.
 // Les personnages se chargent en arrière-plan : le joueur peut entrer immédiatement.
 start.disabled=false;start.textContent='ENTRER DANS LE MONDE';status.textContent='✓ Monde prêt · personnages 3D en chargement en arrière-plan…';
@@ -210,7 +213,7 @@ if(started&&!dialog){lyra.model.position.set(lyra.x,0,lyra.z);lyra.model.rotatio
 separateFromDynamic();player.x=Math.max(-82,Math.min(82,player.x));player.z=Math.max(-82,Math.min(82,player.z));player.model.position.set(player.x,0,player.z);
 for(const e of enemies){if(e.dead)continue;e.cd-=dt;const dx=player.x-e.x,dz=player.z-e.z,d=Math.hypot(dx,dz);if(d<22&&d>.4){const ex=e.x+dx/d*e.speed*dt,ez=e.z+dz/d*e.speed*dt;
 if(!blockedAt(ex,ez)){e.x=ex;e.z=ez;}
-e.model.position.set(e.x,0,e.z);e.model.rotation.y=Math.atan2(dx,dz)}if(d<1.7&&e.cd<=0){e.cd=1.1;const taken=Math.max(1,e.atk-Math.floor((S.armorLevel||1)*1.5));S.hp=Math.max(0,S.hp-taken);toast('💥 '+e.kind+' t’attaque ! -'+taken);if(S.hp===0){S.hp=S.maxHp*.55;player.x=S.saveX??0;player.z=S.saveZ??18;player.vx=0;player.vz=0;S.gold=Math.max(0,S.gold-20);toast('💀 Tu as été vaincu. Retour au village.')}save()}}
+e.model.position.set(e.x,0,e.z);e.model.rotation.y=Math.atan2(dx,dz)}if(d<1.7&&e.cd<=0){e.cd=1.1;const taken=Math.max(1,e.atk-Math.floor((S.armorLevel||1)*1.5));S.hp=Math.max(0,S.hp-taken);toast('💥 '+e.kind+' t’attaque ! -'+taken);if(S.hp===0){S.hp=S.maxHp*.55;player.x=S.saveX??0;player.z=S.saveZ??28;player.vx=0;player.vz=0;S.gold=Math.max(0,S.gold-20);toast('💀 Tu as été vaincu. Retour au village.')}save()}}
 attackCd=Math.max(0,attackCd-dt);if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)document.getElementById('message').style.display='none'}hud()}
 const night=(Math.sin(phase*.025)+1)/2;sun.intensity=1.15+night*1.4;scene.fog.density=.0058+night*.003;scene.background.setHSL(.60,.45,.07+.06*night);animate(dt);
 const camDist=MOBILE?7.8:10.5;const camTarget=new T.Vector3(player.x+camDist*.72,MOBILE?5.2:6.6,player.z+camDist);camera.position.lerp(camTarget,1-Math.pow(.001,dt));camera.lookAt(new T.Vector3(player.x,1.55,player.z));renderer.render(scene,camera);requestAnimationFrame(loop)}
