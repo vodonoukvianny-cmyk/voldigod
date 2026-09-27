@@ -139,9 +139,91 @@ fallbackHero(player,3.25,'sword');
 loadHero(lyra,LYRA_URL,3.05,'staff').then(()=>{status.textContent='✓ Aren + Lyra chargés · monde prêt.'}).catch(e=>{console.warn('Lyra model:',e);status.textContent='✓ Monde jouable · modèle de Lyra indisponible pour le moment.'});
 function actorShadow(target,r=0.65){const sh=new T.Mesh(new T.CircleGeometry(r,16),M(0x10141a,.38));sh.rotation.x=-Math.PI/2;sh.position.set(target.x||0,.018,target.z||0);scene.add(sh);target.shadow=sh;return sh}
 function creatureFinish(g){g.traverse(o=>{if(o.isMesh){o.castShadow=!MOBILE;o.receiveShadow=!MOBILE}});return g}
-function makePivot(parent,items,anchor,name){if(!items.length)return null;const p=new T.Group();p.name=name;p.position.set(anchor.x,anchor.y,anchor.z);parent.add(p);for(const o of items){const wp=o.position.clone(),wr=o.rotation.clone();parent.remove(o);o.position.copy(wp).sub(p.position);o.rotation.copy(wr);p.add(o)}return p}
-function buildArticulation(g,kind='humanoid'){const direct=g.children.slice(),arms=[],legs=[];for(const o of direct){if(!o.isMesh)continue;const x=o.position.x,y=o.position.y,ax=Math.abs(x);if(kind==='spider'){if(ax>.38&&y<.95)legs.push(o)}else if(kind==='quadruped'){if(ax>.16&&y<.82)legs.push(o)}else{if(ax>.34&&y>.78&&y<1.92)arms.push(o);if(ax>.12&&y<.92)legs.push(o)}}const rig={arms:[],legs:[],weapon:g.userData.weapon||null};if(kind==='spider'||kind==='quadruped'){for(const o of legs){const p=makePivot(g,[o],{x:o.position.x,y:o.position.y+.28,z:o.position.z},'LEG');if(p)rig.legs.push(p)}}else{for(const side of[-1,1]){const ai=arms.filter(o=>o.position.x*side>0),li=legs.filter(o=>o.position.x*side>0);const ap=makePivot(g,ai,{x:side*(kind==='orc'?.74:kind==='hero'?.56:.52),y:kind==='orc'?1.75:1.65,z:0},'ARM_'+side);const lp=makePivot(g,li,{x:side*(kind==='orc'?.34:.24),y:.78,z:0},'LEG_'+side);if(ap)rig.arms.push(ap);if(lp)rig.legs.push(lp)}}g.userData.rig=rig;return rig}
-function animateArticulation(rig,t,walk,attack,attackT){if(!rig)return;const swing=walk?Math.sin(t*10)*.62:Math.sin(t*2)*.025;rig.legs.forEach((p,i)=>{const s=i%2===0?1:-1;p.rotation.x=walk?swing*s:-.02*s;p.rotation.z=walk?Math.sin(t*10+i)*.05:0;p.rotation.y=walk?Math.sin(t*5+i)*.035:0});rig.arms.forEach((p,i)=>{const s=i%2===0?1:-1;p.rotation.x=walk?Math.sin(t*10+i+1)*.28:Math.sin(t*2+i)*.018;p.rotation.z=walk?s*.1:0;p.rotation.y=walk?Math.sin(t*5+i)*.06:0});if(attack){const p=Math.min(1,attackT/.52),wind=p<.38?p/.38:(1-p)/.62,strike=Math.sin(Math.min(1,p)*Math.PI);rig.arms.forEach((a,i)=>{const s=i%2===0?1:-1;a.rotation.x=s*(i===1?.9:-.38)*wind;a.rotation.z=s*.16*strike;a.rotation.y=s*.12*strike});if(rig.weapon){rig.weapon.rotation.x=-1.45*strike;rig.weapon.rotation.y=.35*strike;rig.weapon.rotation.z=-.65*wind}}}
+function makePivot(parent,items,anchor,name){const p=new T.Group();p.name=name;p.position.set(anchor.x,anchor.y,anchor.z);parent.add(p);for(const o of items||[]){const wp=o.position.clone(),wr=o.rotation.clone();parent.remove(o);o.position.copy(wp).sub(p.position);o.rotation.copy(wr);p.add(o)}return p}
+function joint(parent,pos,r=.11,mat=0x9aa7b2){const j=sph(r,M(mat,.38,.35));j.position.copy(pos);parent.add(j);return j}
+function limbChain(parent,side,baseY,upperX,kind,index){
+ const s=side, shoulder=makePivot(parent,[],{x:s*upperX,y:baseY,z:0},kind+'_SHOULDER_'+s);
+ const elbow=makePivot(shoulder,[],{x:0,y:-.42,z:0},kind+'_ELBOW_'+s);
+ const wrist=makePivot(elbow,[],{x:0,y:-.42,z:0},kind+'_WRIST_'+s);
+ joint(shoulder,{x:0,y:-.42,z:0},.105,kind==='orc'?0x566b35:0x9aa7b2);
+ joint(elbow,{x:0,y:-.42,z:0},.09,kind==='orc'?0x566b35:0x9aa7b2);
+ return {root:shoulder,elbow,wrist,side:s};
+}
+function legChain(parent,side,hipY,hipX,kind){
+ const s=side,hip=makePivot(parent,[],{x:s*hipX,y:hipY,z:0},kind+'_HIP_'+s);
+ const knee=makePivot(hip,[],{x:0,y:-.42,z:0},kind+'_KNEE_'+s);
+ const ankle=makePivot(knee,[],{x:0,y:-.38,z:0},kind+'_ANKLE_'+s);
+ joint(knee,{x:0,y:0,z:0},.105,kind==='orc'?0x566b35:0x8b765e);
+ joint(ankle,{x:0,y:0,z:0},.085,kind==='orc'?0x566b35:0x8b765e);
+ return {root:hip,knee,ankle,side:s};
+}
+function buildArticulation(g,kind='humanoid'){
+ const direct=g.children.slice(),arms=[],legs=[];
+ for(const o of direct){if(!o.isMesh)continue;const x=o.position.x,y=o.position.y,ax=Math.abs(x);
+  if(kind==='spider'){if(ax>.38&&y<1.15)legs.push(o)}
+  else if(kind==='quadruped'){if(ax>.16&&y<1.0)legs.push(o)}
+  else{if(ax>.34&&y>.78&&y<1.95)arms.push(o);if(ax>.12&&y<.95)legs.push(o)}
+ }
+ const rig={arms:[],legs:[],weapon:g.userData.weapon||null,kind};
+ if(kind==='spider'){
+   for(const o of legs){const side=o.position.x<0?-1:1;const p=makePivot(g,[o],{x:o.position.x,y:o.position.y+.28,z:o.position.z},'SPIDER_LEG_'+side);const k=makePivot(p,[],{x:side*.34,y:-.18,z:.05},'KNEE');const a=makePivot(k,[],{x:side*.34,y:-.08,z:.12},'ANKLE');joint(k,{x:0,y:0,z:0},.07,0x30343c);joint(a,{x:0,y:0,z:0},.055,0x30343c);rig.legs.push({root:p,knee:k,ankle:a,side});}
+ }else if(kind==='quadruped'){
+   for(const o of legs){const side=o.position.x<0?-1:1;const p=makePivot(g,[o],{x:o.position.x,y:o.position.y+.28,z:o.position.z},'LEG_'+side);const k=makePivot(p,[],{x:0,y:-.28,z:.12},'KNEE');const a=makePivot(k,[],{x:0,y:-.28,z:.08},'ANKLE');joint(k,{x:0,y:0,z:0},.075,0x514d4b);joint(a,{x:0,y:0,z:0},.06,0x514d4b);rig.legs.push({root:p,knee:k,ankle:a,side});}
+ }else{
+   for(const side of[-1,1]){
+    const ai=arms.filter(o=>o.position.x*side>0),li=legs.filter(o=>o.position.x*side>0);
+    const ar=makePivot(g,ai,{x:side*(kind==='orc'?.74:kind==='hero'?.56:.52),y:kind==='orc'?1.75:1.65,z:0},'SHOULDER_'+side);
+    const ae=makePivot(ar,[],{x:0,y:-.42,z:0},'ELBOW_'+side);
+    const aw=makePivot(ae,[],{x:0,y:-.42,z:0},'WRIST_'+side);
+    joint(ae,{x:0,y:0,z:0},.105,kind==='orc'?0x566b35:0x9aa7b2);
+    joint(aw,{x:0,y:0,z:0},.08,kind==='orc'?0x566b35:0x9aa7b2);
+    const le=makePivot(g,li,{x:side*(kind==='orc'?.34:.24),y:.78,z:0},'HIP_'+side);
+    const lk=makePivot(le,[],{x:0,y:-.42,z:0},'KNEE_'+side);
+    const la=makePivot(lk,[],{x:0,y:-.38,z:0},'ANKLE_'+side);
+    joint(lk,{x:0,y:0,z:0},.105,kind==='orc'?0x566b35:0x8b765e);
+    joint(la,{x:0,y:0,z:0},.08,kind==='orc'?0x566b35:0x8b765e);
+    if(ar.children.length||ai.length)rig.arms.push({root:ar,elbow:ae,wrist:aw,side});
+    if(le.children.length||li.length)rig.legs.push({root:le,knee:lk,ankle:la,side});
+   }
+ }
+ g.userData.rig=rig;return rig
+}
+function animateArticulation(rig,t,walk,attack,attackT){
+ if(!rig)return;
+ const cycle=t*9.5;
+ rig.legs.forEach((l,i)=>{
+   const s=l.side||((i%2)?-1:1),phase=i%2?Math.PI:0;
+   const step=walk?Math.sin(cycle+phase):0;
+   l.root.rotation.x=step*.48;l.root.rotation.z=walk?s*.045:0;
+   l.knee.rotation.x=walk?Math.max(0,-step)*.72:0;
+   l.knee.rotation.z=walk?s*.035:0;
+   l.ankle.rotation.x=walk?-step*.32:0;
+   l.ankle.rotation.z=walk?s*.02:0;
+ });
+ rig.arms.forEach((a,i)=>{
+   const s=a.side||((i%2)?-1:1),phase=i%2?Math.PI:0;
+   const swing=walk?Math.sin(cycle+phase):0;
+   a.root.rotation.x=swing*.28;a.root.rotation.z=walk?s*.08:0;
+   a.elbow.rotation.x=walk?Math.max(0,-swing)*.28:0;
+   a.wrist.rotation.x=walk?-swing*.12:0;
+   a.wrist.rotation.z=walk?s*.04:0;
+ });
+ if(attack){
+   const p=Math.min(1,attackT/.52),wind=p<.38?p/.38:(1-p)/.62,strike=Math.sin(Math.min(1,p)*Math.PI);
+   rig.arms.forEach((a,i)=>{
+    const s=a.side||((i%2)?-1:1),active=i===1;
+    a.root.rotation.x=(active?1.15:-.3)*wind*s;
+    a.root.rotation.z=s*.22*strike;
+    a.elbow.rotation.x=(active?-1.25:.45)*wind;
+    a.elbow.rotation.z=s*.18*strike;
+    a.wrist.rotation.x=(active?-1.05:.28)*wind;
+    a.wrist.rotation.y=s*.35*strike;
+   });
+   if(rig.weapon){
+    rig.weapon.rotation.x=-1.7*strike;rig.weapon.rotation.y=.45*strike;rig.weapon.rotation.z=-.8*wind;
+   }
+ }
+}
 
 function eyePair(g,y,z,color=0xffe15a){for(const x of[-1,1]){const e=sph(.085,G(color));e.position.set(x*.18,y,z);g.add(e)}}
 function goblin(){const g=new T.Group(),skin=M(0x709b43),cloth=M(0x4b3a2a),leather=M(0x76502d),metal=M(0x9da7ad,.3,.5);
