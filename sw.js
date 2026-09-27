@@ -1,12 +1,12 @@
-const CACHE='otakujeux-runtime-v2';
+const CACHE='otakujeux-runtime-v3';
 self.addEventListener('fetch',event=>{
  const u=new URL(event.request.url);
  if(event.request.method!=='GET') return;
- const isGame=u.pathname.endsWith('/game.js')||u.pathname.endsWith('/index.html')||u.pathname.includes('/vendor/');
+ const isGame=u.pathname.endsWith('/game.js')||u.pathname.endsWith('/index.html')||u.pathname.endsWith('/manifest.webmanifest')||u.pathname.endsWith('/icon.svg')||u.pathname.includes('/vendor/');
  const isHero=u.href==='https://threejs.org/examples/models/gltf/Soldier.glb'||u.href==='https://threejs.org/examples/models/gltf/Michelle.glb';
  if(!isGame&&!isHero)return;
  event.respondWith(caches.open(CACHE).then(async cache=>{
-   const isCore=u.pathname.endsWith('/game.js')||u.pathname.endsWith('/index.html');
+   const isCore=u.pathname.endsWith('/game.js')||u.pathname.endsWith('/index.html')||u.pathname.endsWith('/manifest.webmanifest')||u.pathname.endsWith('/icon.svg');
    if(isCore){
      try{
        const res=await fetch(event.request);
