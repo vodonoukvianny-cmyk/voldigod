@@ -18,6 +18,12 @@ jobs:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
       - name: Install dependencies
         run: npm install
+      - name: Prepare web assets
+        run: |
+          rm -rf www
+          mkdir -p www/vendor
+          cp index.html game.js manifest.webmanifest icon.svg privacy-policy.html sw.js www/
+          cp vendor/three.min.js vendor/GLTFLoader.js www/vendor/
       - name: Generate Android project
         run: npx cap add android
       - name: Sync web assets
