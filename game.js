@@ -413,21 +413,48 @@ window.addEventListener('keyup',e=>{
 });
 document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;b.onpointerdown=e=>{e.preventDefault();keys[k]=true};b.onpointerup=b.onpointercancel=b.onpointerleave=()=>keys[k]=false});document.querySelectorAll('[data-act]').forEach(b=>{let skipClick=false;const run=()=>{const fn={attack,potion,interact,skill}[b.dataset.act];if(fn)fn()};b.addEventListener('pointerup',e=>{if(e.pointerType==='mouse')return;e.preventDefault();skipClick=true;run();setTimeout(()=>skipClick=false,350)});b.addEventListener('click',e=>{e.preventDefault();if(skipClick)return;run()})});
 
-// Mobile virtual joystick: continuous 360° movement, no button mashing required.
+// Mobile virtual joystick: keep the movement state in JS rather than only in DOM datasets.
+// This avoids Android/WebView pointer-event quirks and makes the control reliable after fullscreen/orientation changes.
+let mobileInputX=0,mobileInputZ=0,mobileInputActive=false;
 const joystick=document.getElementById('joystick'),stick=document.getElementById('stick');
 if(joystick&&stick){
  let pid=null;
- const move=e=>{if(pid===null)return;const r=joystick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,max=r.width*.34;let dx=e.clientX-cx,dy=e.clientY-cy;const d=Math.hypot(dx,dy),q=d>max?max/d:1;dx*=q;dy*=q;stick.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;joystick.dataset.x=(dx/max).toFixed(3);joystick.dataset.z=(dy/max).toFixed(3);};
- const end=()=>{pid=null;joystick.dataset.active='0';joystick.dataset.x='0';joystick.dataset.z='0';stick.style.transform='translate(-50%,-50%)'};
- joystick.addEventListener('pointerdown',e=>{pid=e.pointerId;joystick.dataset.active='1';joystick.setPointerCapture(pid);move(e)});
- joystick.addEventListener('pointermove',move);joystick.addEventListener('pointerup',end);joystick.addEventListener('pointercancel',end);
+ const reset=()=>{
+   pid=null;mobileInputActive=false;mobileInputX=0;mobileInputZ=0;
+   joystick.dataset.active='0';joystick.dataset.x='0';joystick.dataset.z='0';
+   stick.style.transform='translate(-50%,-50%)';
+ };
+ const move=e=>{
+   if(pid===null||e.pointerId!==pid)return;
+   const r=joystick.getBoundingClientRect();
+   const cx=r.left+r.width/2,cy=r.top+r.height/2,max=Math.max(1,r.width*.34);
+   let dx=e.clientX-cx,dy=e.clientY-cy;
+   const d=Math.hypot(dx,dy),q=d>max?max/d:1;
+   dx*=q;dy*=q;
+   mobileInputX=dx/max;mobileInputZ=dy/max;mobileInputActive=true;
+   joystick.dataset.active='1';joystick.dataset.x=mobileInputX.toFixed(3);joystick.dataset.z=mobileInputZ.toFixed(3);
+   stick.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+   if(e.cancelable)e.preventDefault();
+ };
+ joystick.addEventListener('pointerdown',e=>{
+   if(e.pointerType==='mouse'&&e.button!==0)return;
+   pid=e.pointerId;mobileInputActive=true;
+   try{joystick.setPointerCapture(pid)}catch(_){}
+   move(e);
+   if(e.cancelable)e.preventDefault();
+ },{passive:false});
+ joystick.addEventListener('pointermove',move,{passive:false});
+ joystick.addEventListener('pointerup',reset,{passive:false});
+ joystick.addEventListener('pointercancel',reset,{passive:false});
+ joystick.addEventListener('lostpointercapture',reset,{passive:false});
 }
+
 function tryLandscape(){try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{});}catch(e){}}
 document.addEventListener('pointerdown',tryLandscape,{once:true});document.addEventListener('click',tryLandscape,{once:true});window.addEventListener('orientationchange',()=>{setTimeout(()=>{tryLandscape();camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(MOBILE?Math.min(devicePixelRatio||1,1.15):Math.min(devicePixelRatio||1,1.5))},120)});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(MOBILE?Math.min(devicePixelRatio||1,1.15):Math.min(devicePixelRatio||1,1.5))});
 let started=false,last=performance.now(),phase=0;
 function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;phase+=dt;
-if(started&&!dialog){lyra.model.position.set(lyra.x,0,lyra.z);lyra.model.rotation.y=Math.sin(phase*.5)*.18;let x=(keys.d?1:0)-(keys.a?1:0),z=(keys.s?1:0)-(keys.w?1:0);const joy=document.getElementById('joystick');if(joy&&joy.dataset.active==='1'){x=+(joy.dataset.x||0);z=+(joy.dataset.z||0)}const l=Math.hypot(x,z);if(l>0.04){
+if(started&&!dialog){lyra.model.position.set(lyra.x,0,lyra.z);lyra.model.rotation.y=Math.sin(phase*.5)*.18;let x=(keys.d?1:0)-(keys.a?1:0),z=(keys.s?1:0)-(keys.w?1:0);if(mobileInputActive){x=mobileInputX;z=mobileInputZ}else{const joy=document.getElementById('joystick');if(joy&&joy.dataset.active==='1'){x=+(joy.dataset.x||0);z=+(joy.dataset.z||0)}}const l=Math.hypot(x,z);if(l>0.04){
  x/=l;z/=l;
  const targetSpeed=5.8,accel=22;
  player.vx+=(x*targetSpeed-player.vx)*Math.min(1,accel*dt);
