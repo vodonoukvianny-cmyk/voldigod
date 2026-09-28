@@ -1,7 +1,11 @@
 {
   "appId": "com.otakujeux.renaissance",
   "appName": "OTAKUJEUX Renaissance",
-  "webDir": ".",
-  "server": {"androidScheme":"https"},
-  "android": {"backgroundColor":"#08111b"}
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#08111b"
+  }
 }
